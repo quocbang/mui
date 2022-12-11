@@ -1,0 +1,1658 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "services.proto",
+    "version": "version not set"
+  },
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/mes/api/v2/blob/upload": {
+      "post": {
+        "summary": "參數上傳",
+        "operationId": "UploadProductionParameters",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "properties": {}
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": " (streaming inputs)",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiUploadProductionParametersRequest"
+            }
+          }
+        ],
+        "tags": [
+          "API"
+        ]
+      }
+    },
+    "/mes/api/v2/recipe": {
+      "post": {
+        "summary": "查詢基準",
+        "operationId": "Recipe",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiRecipeReply"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiRecipeRequest"
+            }
+          }
+        ],
+        "tags": [
+          "API"
+        ]
+      }
+    },
+    "/mes/api/v2/record-inspect-results": {
+      "post": {
+        "summary": "寫入檢測數據",
+        "operationId": "RecordInspectResults",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiRecordInspectResultsReply"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiRecordInspectResultsRequest"
+            }
+          }
+        ],
+        "tags": [
+          "API"
+        ]
+      }
+    },
+    "/mes/api/v2/record-packing": {
+      "post": {
+        "summary": "紀錄包裝秤重",
+        "operationId": "RecordPacking",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiRecordPackingReply"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiRecordPackingRequest"
+            }
+          }
+        ],
+        "tags": [
+          "API"
+        ]
+      }
+    },
+    "/mes/api/v2/resource": {
+      "post": {
+        "summary": "條碼查詢",
+        "operationId": "ListResources",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiListResourcesReply"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiListResourcesRequest"
+            }
+          }
+        ],
+        "tags": [
+          "API"
+        ]
+      }
+    },
+    "/mes/api/v2/resource/bind": {
+      "post": {
+        "summary": "條碼掛載",
+        "description": "Check \u0026 Bind Material(目前不含工具掛載)\n材料檢查, 掛載包含以下操作模式(依據 check.actionMode 決定):\n - ACTION_AUTO: 材料檢查(參考下面材料檢查), 材料檢查成功後, 則進行材料綁定(參考下面材料掛載).\n - ACTION_FORCE: 材料檢查(參考下面材料檢查), 不論材料檢查結果, 皆進行材料綁定(參考下面材料掛載).\n - ACTION_PRECHECK: 僅材料檢查(參考下面材料檢查), 若有給工單號則會檢查材料是否足夠配方需求.\n\n工單檢查:\n - 如有指定生產工單(check.workOrder), 檢查工單狀態是否可以進行綁定材料(Status_ACTIVE/Status_PENDING 狀態才能進行掛載).\n - 如有指定生產批次(check.batch), 檢查該作業批次是否可以進行綁定材料(BatchStatus_BATCH_PREPARING/BatchStatus_BATCH_STARTED 狀態才能進行掛載).\n - 指定工單會檢查配方表是否存在.\n - 未來binds.workOrder, binds.batch 會棄用, 統一從check取得相關資訊.\n\n材料檢查:\n - 檢查指定條碼(binds.resource.ID)是否可以使用(庫存數,到期日,狀態等),\n   如果是force mode下, 如果材料條碼不存在也會允許可以掛載, 但必須指定實際秤重量(binds.resource.quantity不得為空).\n - 有指定工單並取得配方表會檢查材料是否符合(各材料滿足配方所需數量).\n\n材料掛載:\n - binds.type: 指定材料綁定的方式 參考 BindType enum.\n - 將 binds.resource 綁定至對應的 site,\n   site unique/index/resource 未來會拿掉, 可統一先設置 unique=true.\n - 綁定指定數量(實際秤重): binds.quantityGrouped == true 來決定是否將材料進行群組(將料號一樣/可替代的材料統一秤重),\n   如數量為0會檢查前面是否有相同料號的材料有指定數量, 則視為材料群組, 系統將計算各別綁定的數量.\n   例如: 材料 a 能使用材料 b 替代, 請求中的 binds.resources 指定兩張條碼({resource.id = a, quantity = 40}\n   和 {resource.id = b, quantity = 0})綁定於 LINE site, 在 a 材料庫存為10的情況, 系統可能將材料 a 綁定10,\n   材料 b 綁定30.\n   在未使用材料群組情況指定綁定數量為0時, 系統不會綁定材料並回傳相應錯誤, 若使用強制執行(ACTION_FORCE)\n   進行操作, 系統會將數量為0的材料綁定至指定的 site.\n\n材料卸載(如: pop, clear): binds.resources 可以為空.\n\n回傳:\n - 有給條碼(binds.resource.ID)的情況, 必會回傳指定條碼對應的材料資訊(results.info).\n - 如材料有錯誤會紀錄在相對應results.ID底下, 其於沒有對應條碼的錯誤會是機台或者工單錯誤等.\n\n下列為回傳錯誤清單:\n - Error_ERROR_BAD_REQUEST\n - ERROR_WORKORDER_NOT_FOUND (找不到指定的工單)\n - ERROR_WORKORDER_BAD_BATCH (該工單作業批次狀態無法進行掛載)\n - ERROR_BATCH_NOT_FOUND (找不到指定的作業批次)\n - ERROR_US_MISMATCH (操作人員與機台登入人員不符)\n - ERROR_SR_SITE_NOT_FOUND (找不到指定操作工位)\n - ERROR_SW_MISMATCH (操作機台與派工單不符)\n - ERROR_RW_RESOURCE_MISSING (部份所需的材料未齊全)\n - ERROR_RESOURCE_NOT_FOUND (材料條碼不存在)\n - ERROR_RESOURCE_EXPIRED (材料過期)\n - ERROR_RESOURCE_ON_HOLD (材料狀態不能使用)\n - ERROR_RW_QUANTITY_BELOW_MIN (材料用量低於最低限制用量)\n - ERROR_RW_QUANTITY_ABOVE_MAX (材料用量高於最高限制用量)\n - ERROR_RW_QUANTITY_SHORTAGE (材料庫存不足))\n - ERROR_RW_BAD_GRADE (材料等級不符)\n - ERROR_RW_RESOURCE_UNEXPECTED (材料與配方不符)",
+        "operationId": "ResourceBind",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiResourceBindReply"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiResourceBindRequest"
+            }
+          }
+        ],
+        "tags": [
+          "API"
+        ]
+      }
+    },
+    "/mes/api/v2/resource/collect": {
+      "post": {
+        "summary": "收料",
+        "description": "收料功能將會進行收料以及產出紀錄. 您必須指定 workOrder, collectBatch, quantity 告訴系統欲收料的工單號碼, 收料量\n相當於幾個首數(預設為1), 收料量.\n部份工程不提供工單要可以進行收料, 則需指定 product 資訊(id, type, unit)\nps: 不適用於包含投料功能的收料\n\n您可透過 resource 指定這批產出的製品/成品紀錄至指定的標示卡條碼, 若無指定, 系統將自動產生一組標示卡條碼, 可從\nCollectReply.resource 得知其標示卡號碼. 當您未指定標示卡條碼時, 您必須透過 carrier 指定其標示卡條碼應放置於哪一\n載具.\n部份工程沒有使用載具或是沒有規劃相關流程, 但有指定收料條碼(resource.ID), 則 carrier 可以不傳.\n\n系統依據 actionMode 分成兩種執行模式: 一般執行(ACTION_AUTO)和強制執行(ACTION_FORCE), 預設為一般執行. 當處理請求\n時遇到系統認定為不正常操作(例如: 該首數狀態不可收料, 收料量大於投料量等)時, 會回饋錯誤到 CollectReply.error.\n您亦可透過強制執行(actionMode=ACTION_FORCE), 系統仍回饋錯誤並執行收料及產出紀錄, 依情況恐怕發生資料不齊全或無法\n預期狀況, 例如標示卡不存在的話, 將導致後段工程仍舊無法使用該條碼, 即使收料請求已被系統接受並執行.\n\n若您想知道該批製品/成品更進一步資訊, 可透過 labelFields 指定需要知道的資訊, 目前支援:\n - product_type: 製品/成品類別, 例如: 天然橡膠, 合成橡膠, 鋼絲圈...等.\n - process_name: 製品生產流程代號\n - collect_quantity: 收取數\n - station: 機台號碼\n - manufacture_date: 製造日期時間\n - expiry: 製品/成品過期日期時間\n - operator: 收料人員\n - batch: 工單號碼+collectBatch\n - lot: 標示卡號碼\n - lot_number: 生產批號, 格式: 1碼工作群組+2碼機台編號+\"-\"+2碼月份+2碼日期, 例如: 工作群組=5, 機台編號=3,\n               日期=2021-02-03, 其生產批號為: 503-0203.\n以上資訊可從 CollectReply.labelFields 獲得.\n\n若您僅需要查詢收料紀錄, 可指定 onlyQueryLabels=true, 並給予以下資訊:\n - 工單編號(workOrder)\n - 收料序號(sequence)\n - 查詢欄位(labelFields)\n系統亦依據 metadata 的操作機台和當前登入人員, 篩選對應的收料紀錄(依據工單編號+生產批號+收料序號).\n若存在收料記錄, 依據 labelFields 回傳資料; 若不存在則回傳錯誤.\n\n包含投料功能:\n - Feed.feeds 參考 resourceFeed 指定投入材料 or 從 site 投入指定材料\n - Feed.AccordingRecipe 決定是否依照配合表重量扣重, 不指定的話 feeds 投入材料必填重量\n\n下列為回傳錯誤清單:\n - Error_ERROR_BAD_REQUEST\n - ERROR_RESOURCE_NOT_FOUND (材料條碼不存在)\n - ERROR_RESOURCE_EXISTED (收料標示卡已存在)\n - ERROR_WORKORDER_NOT_FOUND (找不到指定的工單)\n - ERROR_WORKORDER_BAD_BATCH (該工單作業批次狀態無法進行掛載)\n - ERROR_CARRIER_NOT_FOUND (找不到指定收取容器條碼)\n - ERROR_CARRIER_IN_USE (收料容器已被使用)\n - ERROR_BATCH_NOT_READY (該作業批次還不能收料)\n - ERROR_RW_QUANTITY_ABOVE_MAX (收取數量大於投料量, 超出允許收料範圍)\n - ERROR_WORKORDER_BAD_STATUS (工單狀態錯誤不允許進行操作)\n - ERROR_RECORD_EXISTED (收料紀錄已經存在)\n - ERROR_RECORD_NOT_FOUND (找不到收料紀錄)",
+        "operationId": "Collect",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiCollectReply"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiCollectRequest"
+            }
+          }
+        ],
+        "tags": [
+          "API"
+        ]
+      }
+    },
+    "/mes/api/v2/resource/feed": {
+      "post": {
+        "summary": "投料",
+        "description": "投料功能須指定投料的工單(check.workOrder)\n\n系統將依據 feeds 指定將從哪個材料工位(feeds.site) 或 投入指定某材料(feeds.resource)進行投料,\nsite.unique/index/resource 未來只會剩下index.\n投料必為依工位或投入指定材料條碼其中一個\n\n材料檢查:\n - 檢查指定工位投入的材料是否可以使用,是否過期,庫存量等, 結果紀錄至 ResourceFeedReply.results.\n\n生產紀錄:\n - 依據 feeds.quantity 數量進行生產紀錄, 如沒有給重量(feeds.quantity==null)則當作掛載的材料全部投入.\n - 一般執行(ACTION_AUTO)下重量給0時, 將不會紀錄生產資訊, 並回傳錯誤訊息.\n - 強制執行(ACTION_FORCE)下重量給0時, 強制投料, 並且紀錄數量為0的生產紀錄, 並回傳錯誤訊息.\n\nfeeds.cumulative/byCollectInfo 功能未來將不支援.\ncloseBatch == true, 該次投料成功後, 該首數將不能再次投料(視為結束投料).\ndoNotStartBatch == true, 表示實際投料但並未開始生產, 系統會紀錄投料資訊但不變更首數狀態. (未來將棄用)\n\n下列為回傳錯誤清單:\n - Error_ERROR_BAD_REQUEST\n - ERROR_RESOURCE_NOT_FOUND (材料條碼不存在)\n - ERROR_RESOURCE_EXPIRED (材料過期)\n - ERROR_RESOURCE_ON_HOLD (材料狀態不能使用)\n - ERROR_WORKORDER_NOT_FOUND (找不到指定的工單)\n - ERROR_WORKORDER_BAD_BATCH (該工單作業批次狀態無法進行掛載)\n - ERROR_BATCH_NOT_FOUND (找不到指定的作業批次)\n - ERROR_US_MISMATCH (操作人員與機台登入人員不符)\n - ERROR_SR_SITE_NOT_FOUND (找不到指定操作工位)\n - ERROR_SW_MISMATCH (操作機台與派工單不符)\n - ERROR_RW_QUANTITY_BELOW_MIN (材料用量低於配合表最低用量)\n - ERROR_RW_QUANTITY_ABOVE_MAX (材料用量高於配合表最高用量)\n - ERROR_RW_QUANTITY_SHORTAGE (材料庫存不足))\n - ERROR_RW_BAD_GRADE (材料等級不符)\n - ERROR_RW_RESOURCE_UNEXPECTED (材料與配方不符)\n - ERROR_RW_RESOURCE_MISSING (部份所需的材料未齊全)",
+        "operationId": "ResourceFeed",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiResourceFeedReply"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiResourceFeedRequest"
+            }
+          }
+        ],
+        "tags": [
+          "API"
+        ]
+      }
+    },
+    "/mes/api/v2/sign": {
+      "post": {
+        "summary": "作業員登入出機台工位",
+        "description": "指定 in 的值表示為登入或登出. 登入: in=true; 登出: in=false.\n欲登入出的作業員身分指定於 metadata 的 User-Id, 而登入出的機台工位則分別依據 metadata 的\n Station 和 Site.\n\n登入時必需指定:\n - workDate: 工作日, unix nano格式.\n - group: 工作群組, 將影響生產批號(詳細請參考 rpc Collect).\n\n登出時僅需指定: in=false.\n\n如果 onlyValidation 指定為 true, 表示檢查該工號是否為在職.\n\n下列為回傳錯誤清單:\n - Error_ERROR_BAD_REQUEST\n - Error_ERROR_USER_NOT_FOUND_OR_BAD_PASSWORD (使用者已離職或密碼錯誤)\n - Error_ERROR_US_MISMATCH (作業員與機台登入人員不符, 無法登出)\n - Error_ERROR_US_SIGN_ON_FORBIDDEN (上一位使用者沒登出, 無法登入)",
+        "operationId": "Operator",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiOperatorReply"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiOperatorRequest"
+            }
+          }
+        ],
+        "tags": [
+          "API"
+        ]
+      }
+    },
+    "/mes/api/v2/workorder": {
+      "post": {
+        "summary": "工單操作",
+        "description": "工單操作包含以下功能:\n - 變更工單狀態(工單狀態請參考 ./workorder/workorder.proto enum Status),\n   包含以下變更方式:\n    - 跳過工單: 將 skipWorkOrders 內所有工單狀態變更為 SKIPPED. 將工單狀態從\n               PENDING -\u003e SKIPPED, 其他狀態不可執行此操作.\n    - 投料結束工單: closeWorkOrder=指定結束工單, 工單狀態必須為 ACTIVE,\n                   同時所有的首數(batch)狀態為 BATCH_PREPARING / BATCH_CLOSING / BATCH_CLOSED /\n                   BATCH_CANCELLED (首數狀態請參考 ./workorder/workorder.proto enum BatchStatus)\n                   任一種狀態, 系統將變更工單狀態為 CLOSING, 否則不可執行操作並將錯誤回饋到\n                   WorkOrderReply.error.\n                   系統一併會把全部首數狀態 = BATCH_PREPARING 更新成 BATCH_CANCELLED 代表該首數已被取消.\n      您亦可透過指定 closeMode=ACTION_FORCE 進行強制執行, 程式同樣回饋錯誤警示並變更工單狀態.\n      若工單狀態非上述允許的狀態, 則不可執行此操作, 即使指定 closeMode=ACTION_FORCE 也無法變更狀態.\n    - 收料結束工單: finishWorkOrder=指定結束工單, 不檢查首數狀態.\n    - 執行工單: 依據 startWorkOrder 執行指定工單. 將工單狀態從 PENDING -\u003e ACTIVE, 其他狀態不可執行此操作.\n - 查詢工單資料: 依據 loadWorkOrders 查詢工單資料, 詳細操作請參考 ./workorder/workorder.proto\n               message WorkOrderRequest.LoadWorkOrders. 其查詢結果為 workOrders.\n    - 查詢工單(todosWithDetails): 表示取得工單需含該作業流程所需用到配方以及機台參數.\n - 變更首數狀態: 透過指定 batchAction 變更指定工單的首數狀態.\n\n若一個請求包含上述所有功能, 系統執行順序為 [變更首數狀態] -\u003e [變更工單狀態] -\u003e [查詢工單資料].\n\n取得TODO工單回傳資訊:\n - id: 工單號\n - process: 生產作業階段\n - batches.count: 目標生產總批次\n - batches size分三種類型表示(只會出現一種), 分別用來表示 batches.count 對應關係:\n    - unitQuantity: 為 true 的話, 表示為單位數量, 如: 成型每次生產一條生胎\n    - fixedQuantity: 每次批次產出數量為固定數值, 依研發單位制定\n    - perBatchQuantities: 每次批次產出數量不同, 派工決定該批次產出數量\n - status: 工單狀態, 請參考 ./workorder/workorder.proto enum Status\n - fedBatch: 已經投入材料的批次\n - collectedBatch: 已收取成品的批次\n - recipe: details格式為[key]value的型式, 如下說明:\n    - groupedResources : 材料\n       - STEP-${n}-MATERIALS : 表示各階段所需使用的材料, ${n}為大於0整數\n          - requirements : 材料清單\n       - TOOLS : 表示作業所需使用的製工具清單\n          - requirements : 工具清單\n    - groupedParams : 機台參數\n       - STEP-${n}-CONTROL : 表示各階段機台設定參數, ${n}為大於0整數\n          - params : 參數清單\n       - STEP-${n}-MEASUREMENT : 表示各階段機台量測參數, ${n}為大於0整數\n          - params : 參數清單\n\n下列為回傳錯誤清單:\n - Error_ERROR_BAD_REQUEST\n - Error_ERROR_BATCH_NOT_FOUND (找不到工單作業批次)\n - Error_ERROR_WORKORDER_BAD_BATCH (錯誤的作業批次)\n - Error_ERROR_WORKORDER_NOT_FOUND (找不到工單)\n - Error_ERROR_WORKORDER_BAD_STATUS (工單狀態錯誤不允許進行操作)",
+        "operationId": "WorkOrder",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiWorkOrderReply"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiWorkOrderRequest"
+            }
+          }
+        ],
+        "tags": [
+          "API"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "BatchesPerBatch": {
+      "type": "object",
+      "properties": {
+        "quantities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v2commonsDecimal"
+          }
+        }
+      },
+      "title": "Three possible ways to specify batch sizes:\n 1. all single-unit batches : set unitQuantity=true\n 2. all same size batches   : specify the size in fixedQuantity\n 3. different size batches  : specify batch sizes in perBatchQuantities\n 4. plan quantity : specify quantity(plan), batch sizes and batchCount in PlanQuantity"
+    },
+    "BatchesPlanQuantity": {
+      "type": "object",
+      "properties": {
+        "quantity": {
+          "$ref": "#/definitions/v2commonsDecimal"
+        },
+        "batchSize": {
+          "$ref": "#/definitions/v2commonsDecimal"
+        }
+      }
+    },
+    "CollectReplylabelField": {
+      "type": "object",
+      "properties": {
+        "time": {
+          "$ref": "#/definitions/commonsTime"
+        },
+        "decimal": {
+          "$ref": "#/definitions/v2commonsDecimal"
+        },
+        "string": {
+          "type": "string"
+        }
+      }
+    },
+    "CollectRequestFeed": {
+      "type": "object",
+      "properties": {
+        "feeds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiResourceFeed"
+          }
+        },
+        "accordingRecipe": {
+          "type": "boolean",
+          "format": "boolean"
+        }
+      }
+    },
+    "CollectRequestProduct": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "unit": {
+          "type": "string"
+        }
+      }
+    },
+    "ErrorCode": {
+      "type": "string",
+      "enum": [
+        "ERROR_NONE",
+        "ERROR_INTERNAL",
+        "ERROR_BAD_REQUEST",
+        "ERROR_USER_NOT_FOUND_OR_BAD_PASSWORD",
+        "ERROR_USER_NO_PERMISSION",
+        "ERROR_USER_MISSING_TOKEN",
+        "ERROR_USER_UNKNOWN_TOKEN",
+        "ERROR_STATION_NOT_FOUND",
+        "ERROR_STATION_ON_HOLD",
+        "ERROR_RESOURCE_NOT_FOUND",
+        "ERROR_RESOURCE_EXPIRED",
+        "ERROR_RESOURCE_ON_HOLD",
+        "ERROR_RESOURCE_EXISTED",
+        "ERROR_RESOURCE_CONTROL_ABOVE_EXTENDED_COUNT",
+        "ERROR_WORKORDER_NOT_FOUND",
+        "ERROR_WORKORDER_BAD_BATCH",
+        "ERROR_WORKORDER_BAD_STATUS",
+        "ERROR_WORKORDER_UNEXPECTED_RESULTS",
+        "ERROR_CARRIER_NOT_FOUND",
+        "ERROR_CARRIER_IN_USE",
+        "ERROR_CARRIER_FULL",
+        "ERROR_BATCH_NOT_FOUND",
+        "ERROR_BATCH_NOT_READY",
+        "ERROR_RECORD_NOT_FOUND",
+        "ERROR_RECORD_EXISTED",
+        "ERROR_RECIPE_NOT_FOUND",
+        "ERROR_US_MISMATCH",
+        "ERROR_US_SIGN_ON_FORBIDDEN",
+        "ERROR_SR_RESOURCE_IN_USE",
+        "ERROR_SR_SITE_NOT_FOUND",
+        "ERROR_SW_MISMATCH",
+        "ERROR_RW_RESOURCE_NOT_READY",
+        "ERROR_RW_QUANTITY_BELOW_MIN",
+        "ERROR_RW_QUANTITY_ABOVE_MAX",
+        "ERROR_RW_QUANTITY_LOW_DOSAGE",
+        "ERROR_RW_QUANTITY_SHORTAGE",
+        "ERROR_RW_BAD_GRADE",
+        "ERROR_RW_RESOURCE_UNEXPECTED",
+        "ERROR_RW_RESOURCE_MISSING"
+      ],
+      "default": "ERROR_NONE",
+      "title": "- ERROR_INTERNAL: code value \u003c 10000 reserved for plant side application, you should use gRPC error instead\nDO NOT USE IT AS MES API ERROR.\n - ERROR_STATION_ON_HOLD: e.g., maintenance.\n - ERROR_RESOURCE_EXISTED: resource id has been used and thus not valid for new resource from Collect\n - ERROR_WORKORDER_BAD_BATCH: the batch is not allowed to be operated. e.g. CLOSED batch can not be closed.\n - ERROR_WORKORDER_BAD_STATUS: work order unexpected status, e.g: load feed work order only allowed ACTIVE status, load collect work order only allowed ACTIVE or CLOSING status.\n - ERROR_WORKORDER_UNEXPECTED_RESULTS: work order unexpected results, e.g: requested todo work order for feeding but return zero-length todo reply.\n - ERROR_CARRIER_IN_USE: carrier in use and cannot be shared\n - ERROR_CARRIER_FULL: carrier can be shared but it's full\n - ERROR_BATCH_NOT_READY: not enough fed batch to collect\n - ERROR_RECORD_NOT_FOUND: not found query record.\n - ERROR_RECORD_EXISTED: record has been collected.\n - ERROR_US_MISMATCH: the user is not the station/site operator.\n - ERROR_US_SIGN_ON_FORBIDDEN: e.g., not qualified/registered to operate the station.\n - ERROR_SR_RESOURCE_IN_USE: the resource is bound to another station/site provided in details.\n - ERROR_SW_MISMATCH: the work order is not being executed the station\n - ERROR_RW_RESOURCE_NOT_READY: details: \"required_preprocess_name\", e.g., \"cutting\"\n - ERROR_RW_QUANTITY_BELOW_MIN: the used quantity is less than the minimum quantity in the recipe.\n - ERROR_RW_QUANTITY_ABOVE_MAX: the used quantity is greater than the maximum quantity in the recipe.\n - ERROR_RW_QUANTITY_LOW_DOSAGE: the used quantity is less than the dosage.\n - ERROR_RW_QUANTITY_SHORTAGE: the quantity of the stock is less than the specified quantity(e.g. used quantity, the minimum quantity in the recipe).\n - ERROR_RW_BAD_GRADE: details: \"required_resource_grade\", e.g., \"AA\"\n - ERROR_RW_RESOURCE_UNEXPECTED: the resource is not in the work order recipe\n - ERROR_RW_RESOURCE_MISSING: the resource is required but missing"
+    },
+    "PackingBoxNumber": {
+      "type": "object",
+      "properties": {
+        "number": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "ParamsParameters": {
+      "type": "object",
+      "properties": {
+        "dateTime": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ParamsParametersValue"
+          }
+        }
+      }
+    },
+    "ParamsParametersValue": {
+      "type": "object",
+      "properties": {
+        "decimal": {
+          "$ref": "#/definitions/v2commonsDecimal"
+        },
+        "string": {
+          "type": "string"
+        }
+      }
+    },
+    "RecordInspectResultsRequestProposal": {
+      "type": "object",
+      "properties": {
+        "department": {
+          "type": "string"
+        },
+        "user": {
+          "type": "string"
+        },
+        "formSerialNumber": {
+          "type": "string",
+          "title": "電子表單序號"
+        }
+      }
+    },
+    "RecordInspectResultsRequestResourceType": {
+      "type": "string",
+      "enum": [
+        "TYPE_UNSPECIFIED",
+        "WORK_ORDER"
+      ],
+      "default": "TYPE_UNSPECIFIED"
+    },
+    "RecordPackingRequestRecord": {
+      "type": "object",
+      "properties": {
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "packingNumber": {
+          "type": "string"
+        },
+        "boxNumber": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "quantity": {
+          "$ref": "#/definitions/v2commonsDecimal"
+        },
+        "totalWeight": {
+          "$ref": "#/definitions/v2commonsDecimal"
+        }
+      }
+    },
+    "ResourceBindBindType": {
+      "type": "string",
+      "enum": [
+        "RESOURCE_BINDING_NONE",
+        "RESOURCE_BINDING_CONTAINER_BIND",
+        "RESOURCE_BINDING_CONTAINER_ADD",
+        "RESOURCE_BINDING_CONTAINER_CLEAR",
+        "RESOURCE_BINDING_SLOT_BIND",
+        "RESOURCE_BINDING_SLOT_CLEAR",
+        "RESOURCE_BINDING_COLLECTION_BIND",
+        "RESOURCE_BINDING_COLLECTION_ADD",
+        "RESOURCE_BINDING_COLLECTION_CLEAR",
+        "RESOURCE_BINDING_QUEUE_BIND",
+        "RESOURCE_BINDING_QUEUE_CLEAR",
+        "RESOURCE_BINDING_QUEUE_PUSH",
+        "RESOURCE_BINDING_QUEUE_PUSHPOP",
+        "RESOURCE_BINDING_QUEUE_POP",
+        "RESOURCE_BINDING_QUEUE_REMOVE",
+        "RESOURCE_BINDING_COLQUEUE_BIND",
+        "RESOURCE_BINDING_COLQUEUE_ADD",
+        "RESOURCE_BINDING_COLQUEUE_CLEAR",
+        "RESOURCE_BINDING_COLQUEUE_PUSH",
+        "RESOURCE_BINDING_COLQUEUE_PUSHPOP",
+        "RESOURCE_BINDING_COLQUEUE_POP",
+        "RESOURCE_BINDING_COLQUEUE_REMOVE"
+      ],
+      "default": "RESOURCE_BINDING_NONE",
+      "title": "- RESOURCE_BINDING_CONTAINER_BIND: add to a non-discrete resource site, e.g., oil tank\n - RESOURCE_BINDING_SLOT_BIND: bind to a 1-1 resource site\n - RESOURCE_BINDING_COLLECTION_BIND: insert into or remove from a resource collection site\n - RESOURCE_BINDING_QUEUE_BIND: queue for a one-at-a-time resource site\n - RESOURCE_BINDING_COLQUEUE_BIND: collection pipeline"
+    },
+    "ResourceBindSite": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "unique": {
+          "type": "boolean",
+          "format": "boolean"
+        },
+        "index": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "head": {
+          "type": "boolean",
+          "format": "boolean"
+        },
+        "tail": {
+          "type": "boolean",
+          "format": "boolean"
+        },
+        "queueIndex": {
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
+    "ResourceFeedSiteReference": {
+      "type": "object",
+      "properties": {
+        "station": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "unique": {
+          "type": "boolean",
+          "format": "boolean"
+        },
+        "index": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "resource": {
+          "type": "string"
+        }
+      }
+    },
+    "ResourceRequirementSiteRequirement": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "unique": {
+          "type": "boolean",
+          "format": "boolean"
+        },
+        "any": {
+          "type": "boolean",
+          "format": "boolean"
+        },
+        "index": {
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
+    "ResultGrouped": {
+      "type": "object",
+      "properties": {
+        "groupedParams": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/v2inspectionParams"
+          }
+        }
+      }
+    },
+    "WorkOrderReplyWorkOrders": {
+      "type": "object",
+      "properties": {
+        "past": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v2workorderInfo"
+          }
+        },
+        "todo": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v2workorderInfo"
+          }
+        }
+      }
+    },
+    "WorkOrderRequestBatchAction": {
+      "type": "object",
+      "properties": {
+        "workOrder": {
+          "type": "string"
+        },
+        "batch": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "status": {
+          "$ref": "#/definitions/workorderBatchStatus"
+        },
+        "note": {
+          "type": "string"
+        }
+      },
+      "title": "Manual change to batch status"
+    },
+    "WorkOrderRequestLoadWorkOrders": {
+      "type": "object",
+      "properties": {
+        "past": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "todo": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "pastIncludesSkipped": {
+          "type": "boolean",
+          "format": "boolean"
+        },
+        "pastIncludesClosed": {
+          "type": "boolean",
+          "format": "boolean"
+        },
+        "todosWithDetails": {
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
+    "apiCollectReply": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/checkError"
+        },
+        "resource": {
+          "$ref": "#/definitions/resourceID"
+        },
+        "labelFields": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/CollectReplylabelField"
+          },
+          "title": "more collected resource info for display and printing.\nstring表示標示卡欄位說明,labelField 為value"
+        },
+        "enforceable": {
+          "type": "boolean",
+          "format": "boolean"
+        },
+        "enforceDone": {
+          "type": "boolean",
+          "format": "boolean"
+        }
+      }
+    },
+    "apiCollectRequest": {
+      "type": "object",
+      "properties": {
+        "actionMode": {
+          "$ref": "#/definitions/checkActionMode"
+        },
+        "workOrder": {
+          "type": "string"
+        },
+        "collectBatch": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "collector": {
+          "type": "string"
+        },
+        "quantity": {
+          "$ref": "#/definitions/v2commonsDecimal"
+        },
+        "resource": {
+          "$ref": "#/definitions/resourceID"
+        },
+        "carrier": {
+          "type": "string"
+        },
+        "labelFields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "sequence": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "onlyQueryLabels": {
+          "type": "boolean",
+          "format": "boolean"
+        },
+        "feed": {
+          "$ref": "#/definitions/CollectRequestFeed"
+        },
+        "product": {
+          "$ref": "#/definitions/CollectRequestProduct"
+        }
+      }
+    },
+    "apiListResourcesReply": {
+      "type": "object",
+      "properties": {
+        "results": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiListResourcesReplyResourceResult"
+          }
+        }
+      }
+    },
+    "apiListResourcesReplyResourceResult": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/checkError"
+        },
+        "id": {
+          "$ref": "#/definitions/resourceID"
+        },
+        "info": {
+          "$ref": "#/definitions/v2resourceInfo"
+        }
+      }
+    },
+    "apiListResourcesRequest": {
+      "type": "object",
+      "properties": {
+        "ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/resourceID"
+          }
+        }
+      }
+    },
+    "apiOperatorReply": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/checkError"
+        }
+      }
+    },
+    "apiOperatorRequest": {
+      "type": "object",
+      "properties": {
+        "in": {
+          "type": "boolean",
+          "format": "boolean"
+        },
+        "group": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "workDate": {
+          "$ref": "#/definitions/commonsTime"
+        },
+        "shift": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "onlyValidation": {
+          "type": "boolean",
+          "format": "boolean"
+        }
+      }
+    },
+    "apiRecipeReply": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/checkError"
+        },
+        "product": {
+          "type": "string"
+        },
+        "recipe": {
+          "$ref": "#/definitions/recipeRecipe"
+        },
+        "packing": {
+          "$ref": "#/definitions/apiRecipeReplyPacking"
+        }
+      }
+    },
+    "apiRecipeReplyPacking": {
+      "type": "object",
+      "properties": {
+        "specification": {
+          "type": "string"
+        },
+        "quantity": {
+          "$ref": "#/definitions/v2commonsDecimal"
+        }
+      }
+    },
+    "apiRecipeRequest": {
+      "type": "object",
+      "properties": {
+        "packing": {
+          "$ref": "#/definitions/apiRecipeRequestPacking"
+        },
+        "resource": {
+          "$ref": "#/definitions/apiRecipeRequestResource"
+        },
+        "recipeID": {
+          "type": "string"
+        },
+        "withoutRecipeDetails": {
+          "type": "boolean",
+          "format": "boolean"
+        }
+      }
+    },
+    "apiRecipeRequestPacking": {
+      "type": "object",
+      "properties": {
+        "packingNumber": {
+          "type": "string"
+        },
+        "box": {
+          "$ref": "#/definitions/PackingBoxNumber"
+        }
+      }
+    },
+    "apiRecipeRequestResource": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "productType": {
+          "type": "string"
+        }
+      }
+    },
+    "apiRecordInspectResultsReply": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/checkError"
+        }
+      }
+    },
+    "apiRecordInspectResultsRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "resource": {
+          "$ref": "#/definitions/apiRecordInspectResultsRequestResource",
+          "description": "若需要依據各項檢驗資料判定結果變更條碼狀態(可否使用),\n則需要指定此一欄位."
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "title": "檢驗開始時間"
+        },
+        "timestampEnd": {
+          "type": "string",
+          "format": "date-time",
+          "title": "檢驗結束時間"
+        },
+        "purpose": {
+          "type": "string",
+          "title": "試驗目的"
+        },
+        "recipeID": {
+          "type": "string",
+          "title": "試驗標準"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/protoutilsDecimal"
+          },
+          "title": "當前設備狀況"
+        },
+        "batches": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/inspectionBatch"
+          },
+          "title": "各項檢驗資料"
+        },
+        "additions": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "proposal": {
+          "$ref": "#/definitions/RecordInspectResultsRequestProposal"
+        },
+        "tireType": {
+          "type": "string"
+        },
+        "scanType": {
+          "type": "string"
+        },
+        "remark": {
+          "type": "string"
+        }
+      }
+    },
+    "apiRecordInspectResultsRequestResource": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "$ref": "#/definitions/RecordInspectResultsRequestResourceType"
+        },
+        "id": {
+          "type": "string"
+        }
+      }
+    },
+    "apiRecordPackingReply": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/checkError"
+        }
+      }
+    },
+    "apiRecordPackingRequest": {
+      "type": "object",
+      "properties": {
+        "records": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RecordPackingRequestRecord"
+          }
+        }
+      }
+    },
+    "apiResourceBind": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "$ref": "#/definitions/ResourceBindBindType"
+        },
+        "site": {
+          "$ref": "#/definitions/ResourceBindSite"
+        },
+        "resources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiResourceBindResource"
+          }
+        },
+        "group": {
+          "type": "string"
+        },
+        "quantityGrouped": {
+          "type": "boolean",
+          "format": "boolean"
+        }
+      },
+      "title": "Bind resource to station site\ntype: 決定resource以哪種型式進行掛載\nsite.selector     : 預設site為唯一的, 能指定將resource bind到指定的工位\nsite.queueLocation: 決定材料堆疊的地方\n材料沒有指定重量則將所有材料庫存綁定(同時材料庫存會扣除)"
+    },
+    "apiResourceBindReply": {
+      "type": "object",
+      "properties": {
+        "results": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v2apiResourceResult"
+          }
+        }
+      }
+    },
+    "apiResourceBindRequest": {
+      "type": "object",
+      "properties": {
+        "binds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiResourceBind"
+          }
+        },
+        "check": {
+          "$ref": "#/definitions/checkResourceAction"
+        },
+        "doNotPrepareBatch": {
+          "type": "boolean",
+          "format": "boolean"
+        }
+      }
+    },
+    "apiResourceBindResource": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/resourceID"
+        },
+        "quantity": {
+          "$ref": "#/definitions/v2commonsDecimal"
+        }
+      }
+    },
+    "apiResourceFeed": {
+      "type": "object",
+      "properties": {
+        "site": {
+          "$ref": "#/definitions/ResourceFeedSiteReference"
+        },
+        "resource": {
+          "$ref": "#/definitions/apiResourceFeedResource"
+        },
+        "quantity": {
+          "$ref": "#/definitions/v2commonsDecimal"
+        },
+        "cumulative": {
+          "type": "boolean",
+          "format": "boolean"
+        }
+      }
+    },
+    "apiResourceFeedReply": {
+      "type": "object",
+      "properties": {
+        "results": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v2apiResourceResult"
+          }
+        },
+        "enforceable": {
+          "type": "boolean",
+          "format": "boolean"
+        },
+        "enforceDone": {
+          "type": "boolean",
+          "format": "boolean"
+        }
+      }
+    },
+    "apiResourceFeedRequest": {
+      "type": "object",
+      "properties": {
+        "feeds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiResourceFeed"
+          }
+        },
+        "check": {
+          "$ref": "#/definitions/checkResourceAction"
+        },
+        "doNotStartBatch": {
+          "type": "boolean",
+          "format": "boolean"
+        },
+        "closeBatch": {
+          "type": "boolean",
+          "format": "boolean"
+        },
+        "accordingRecipe": {
+          "type": "boolean",
+          "format": "boolean"
+        }
+      }
+    },
+    "apiResourceFeedResource": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "productType": {
+          "type": "string"
+        }
+      }
+    },
+    "apiUploadProductionParametersRequest": {
+      "type": "object",
+      "properties": {
+        "station": {
+          "type": "string"
+        },
+        "batch": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "resources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "params": {
+          "$ref": "#/definitions/apiUploadProductionParametersRequestParams"
+        }
+      }
+    },
+    "apiUploadProductionParametersRequestParams": {
+      "type": "object",
+      "properties": {
+        "headers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "params": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ParamsParameters"
+          }
+        }
+      }
+    },
+    "apiWorkOrderReply": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/checkError"
+        },
+        "workOrders": {
+          "$ref": "#/definitions/WorkOrderReplyWorkOrders"
+        }
+      }
+    },
+    "apiWorkOrderRequest": {
+      "type": "object",
+      "properties": {
+        "skipWorkOrders": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "closeWorkOrder": {
+          "type": "string"
+        },
+        "startWorkOrder": {
+          "type": "string"
+        },
+        "loadWorkOrders": {
+          "$ref": "#/definitions/WorkOrderRequestLoadWorkOrders"
+        },
+        "note": {
+          "type": "string"
+        },
+        "batchAction": {
+          "$ref": "#/definitions/WorkOrderRequestBatchAction"
+        },
+        "closeMode": {
+          "$ref": "#/definitions/checkActionMode"
+        },
+        "finishWorkOrder": {
+          "type": "string"
+        }
+      }
+    },
+    "checkActionMode": {
+      "type": "string",
+      "enum": [
+        "ACTION_AUTO",
+        "ACTION_FORCE",
+        "ACTION_PRECHECK"
+      ],
+      "default": "ACTION_AUTO"
+    },
+    "checkError": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "$ref": "#/definitions/ErrorCode"
+        },
+        "details": {
+          "type": "string"
+        }
+      }
+    },
+    "checkResourceAction": {
+      "type": "object",
+      "properties": {
+        "actionMode": {
+          "$ref": "#/definitions/checkActionMode"
+        },
+        "workOrder": {
+          "type": "string"
+        },
+        "batch": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "groupRequirements": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/checkResourceStatus"
+          }
+        }
+      },
+      "description": "Checks if a resource action is ok.\nIf workOrder is empty, simply check if the action is possible \u0026 allowed, e.g., material is enough and not expired.\nOtherwise check if the action is expected for the work order, e.g., material or tool is required by the work order."
+    },
+    "checkResourceStatus": {
+      "type": "string",
+      "enum": [
+        "RESOURCE_STATUS_NONE",
+        "RESOURCE_STATUS_BOUND",
+        "RESOURCE_STATUS_PRESERVED",
+        "RESOURCE_STATUS_READY",
+        "RESOURCE_STATUS_FED"
+      ],
+      "default": "RESOURCE_STATUS_NONE"
+    },
+    "commonsTime": {
+      "type": "object",
+      "properties": {
+        "nano": {
+          "type": "string",
+          "format": "int64",
+          "title": "now.UnixNano()"
+        }
+      }
+    },
+    "inspectionBatch": {
+      "type": "object",
+      "properties": {
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "title": "檢驗開使時間"
+        },
+        "timestampEnd": {
+          "type": "string",
+          "format": "date-time",
+          "title": "檢驗結束時間"
+        },
+        "sequence": {
+          "type": "string",
+          "title": "試驗編號"
+        },
+        "resourceID": {
+          "type": "string"
+        },
+        "partName": {
+          "type": "string",
+          "title": "part number or name"
+        },
+        "results": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/inspectionResult"
+          },
+          "title": "檢驗結果"
+        },
+        "judgment": {
+          "$ref": "#/definitions/inspectionJudgment",
+          "title": "判定結果"
+        }
+      }
+    },
+    "inspectionJudgment": {
+      "type": "string",
+      "enum": [
+        "JUDGMENT_UNSPECIFIED",
+        "QUALIFIED",
+        "FAILED"
+      ],
+      "default": "JUDGMENT_UNSPECIFIED"
+    },
+    "inspectionResult": {
+      "type": "object",
+      "properties": {
+        "number": {
+          "$ref": "#/definitions/protoutilsDecimal"
+        },
+        "grouped": {
+          "$ref": "#/definitions/ResultGrouped"
+        }
+      }
+    },
+    "protoutilsDecimal": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "string"
+        }
+      },
+      "description": "Decimal is a substitution of the numeric, including float, double, int32, int64."
+    },
+    "recipeDecimalParam": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "$ref": "#/definitions/v2commonsDecimal"
+        },
+        "min": {
+          "$ref": "#/definitions/v2commonsDecimal"
+        },
+        "max": {
+          "$ref": "#/definitions/v2commonsDecimal"
+        },
+        "unit": {
+          "type": "string"
+        }
+      }
+    },
+    "recipeFreshness": {
+      "type": "object",
+      "properties": {
+        "resting": {
+          "$ref": "#/definitions/commonsTime"
+        },
+        "expiry": {
+          "$ref": "#/definitions/commonsTime"
+        },
+        "extension": {
+          "$ref": "#/definitions/v2commonsDecimal"
+        },
+        "maxExtensionTimes": {
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
+    "recipeRecipe": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "batchSize": {
+          "$ref": "#/definitions/v2commonsDecimal"
+        },
+        "releasedAt": {
+          "$ref": "#/definitions/commonsTime"
+        },
+        "details": {
+          "$ref": "#/definitions/recipeRecipeDetails"
+        }
+      }
+    },
+    "recipeRecipeDetails": {
+      "type": "object",
+      "properties": {
+        "groupedResources": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/recipeResourceRequirements"
+          }
+        },
+        "groupedParams": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/v2recipeParams"
+          }
+        }
+      }
+    },
+    "recipeResourceRequirement": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "quantity": {
+          "$ref": "#/definitions/recipeDecimalParam"
+        },
+        "grade": {
+          "type": "string"
+        },
+        "freshness": {
+          "$ref": "#/definitions/recipeFreshness"
+        },
+        "site": {
+          "$ref": "#/definitions/ResourceRequirementSiteRequirement"
+        }
+      }
+    },
+    "recipeResourceRequirements": {
+      "type": "object",
+      "properties": {
+        "requirements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/recipeResourceRequirement"
+          }
+        }
+      }
+    },
+    "resourceID": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "$ref": "#/definitions/v2resourceType"
+        },
+        "id": {
+          "type": "string"
+        },
+        "productType": {
+          "type": "string"
+        }
+      }
+    },
+    "resourceInfoLocation": {
+      "type": "object",
+      "properties": {
+        "station": {
+          "type": "string"
+        },
+        "site": {
+          "type": "string"
+        }
+      }
+    },
+    "v2apiResourceResult": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/checkError"
+        },
+        "id": {
+          "$ref": "#/definitions/resourceID",
+          "title": "involved resource lot/serial ID and info"
+        },
+        "info": {
+          "$ref": "#/definitions/v2resourceInfo"
+        },
+        "quantity": {
+          "$ref": "#/definitions/v2commonsDecimal",
+          "title": "used quantity and resource site"
+        },
+        "site": {
+          "type": "string"
+        },
+        "group": {
+          "type": "string",
+          "title": "corresponding recipe resource group and requirement"
+        },
+        "requirement": {
+          "$ref": "#/definitions/recipeResourceRequirement"
+        }
+      },
+      "title": "Common result structure for resource actions including binding \u0026 feeding"
+    },
+    "v2commonsDecimal": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "string",
+          "format": "int64"
+        },
+        "exp": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "v2inspectionParams": {
+      "type": "object",
+      "properties": {
+        "params": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v2inspectionParamsParam"
+          }
+        }
+      }
+    },
+    "v2inspectionParamsParam": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "value": {
+          "$ref": "#/definitions/v2inspectionValue"
+        }
+      }
+    },
+    "v2inspectionValue": {
+      "type": "object",
+      "properties": {
+        "decimalValue": {
+          "$ref": "#/definitions/protoutilsDecimal"
+        }
+      }
+    },
+    "v2recipeParams": {
+      "type": "object",
+      "properties": {
+        "params": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v2recipeParamsParam"
+          }
+        }
+      }
+    },
+    "v2recipeParamsParam": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "decimalValue": {
+          "$ref": "#/definitions/recipeDecimalParam"
+        },
+        "stringValue": {
+          "type": "string"
+        }
+      }
+    },
+    "v2resourceInfo": {
+      "type": "object",
+      "properties": {
+        "part": {
+          "type": "string"
+        },
+        "grade": {
+          "type": "string"
+        },
+        "creation": {
+          "$ref": "#/definitions/commonsTime"
+        },
+        "expiration": {
+          "$ref": "#/definitions/commonsTime"
+        },
+        "quantity": {
+          "$ref": "#/definitions/v2commonsDecimal"
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "location": {
+          "$ref": "#/definitions/resourceInfoLocation"
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "major": {
+          "type": "boolean",
+          "format": "boolean"
+        }
+      }
+    },
+    "v2resourceType": {
+      "type": "string",
+      "enum": [
+        "MATERIAL",
+        "TOOL"
+      ],
+      "default": "MATERIAL"
+    },
+    "v2workorderInfo": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "process": {
+          "type": "string"
+        },
+        "batches": {
+          "$ref": "#/definitions/workorderBatches"
+        },
+        "recipe": {
+          "$ref": "#/definitions/recipeRecipe"
+        },
+        "status": {
+          "$ref": "#/definitions/workorderStatus"
+        },
+        "fedBatch": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "collectedBatch": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "workorderBatchStatus": {
+      "type": "string",
+      "enum": [
+        "BATCH_PREPARING",
+        "BATCH_STARTED",
+        "BATCH_CLOSING",
+        "BATCH_CLOSED",
+        "BATCH_CANCELLED"
+      ],
+      "default": "BATCH_PREPARING"
+    },
+    "workorderBatches": {
+      "type": "object",
+      "properties": {
+        "count": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "unitQuantity": {
+          "type": "boolean",
+          "format": "boolean"
+        },
+        "fixedQuantity": {
+          "$ref": "#/definitions/v2commonsDecimal"
+        },
+        "perBatchQuantities": {
+          "$ref": "#/definitions/BatchesPerBatch"
+        },
+        "planQuantity": {
+          "$ref": "#/definitions/BatchesPlanQuantity"
+        }
+      }
+    },
+    "workorderStatus": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "ACTIVE",
+        "CLOSING",
+        "CLOSED",
+        "SKIPPED"
+      ],
+      "default": "PENDING"
+    }
+  }
+}

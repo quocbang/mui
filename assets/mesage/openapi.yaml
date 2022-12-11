@@ -1,0 +1,258 @@
+swagger: "2.0"
+info:
+  version: v0.4.3-01
+  title: API Proposal for MES Agent
+  license:
+    name: "Copyright © 2022 Kenda Rubber Industrial Co. Ltd, All Rights Reserved"
+schemes:
+  - http
+  - https
+consumes: [application/json]
+produces: [application/json]
+tags:
+  - name: work-order
+  - name: resource
+definitions:
+  Error:
+    type: object
+    properties:
+      code:
+        type: integer
+        x-omitempty: false
+        description: |
+          自定義錯誤碼
+          定義來源參考:
+          https://gitlab.kenda.com.tw/kenda/mcom/-/blob/${xxx}/errors/code.proto `Code` enum.
+          in which `${xxx}` inside the URL reference is the specified branch name of the corresponding features.
+      details:
+        type: string
+        description: 補充訊息
+  Empty:
+    type: object
+    properties: {}
+  Decimal:
+    type: object
+    properties:
+      value:
+        type: integer
+        format: int64
+      exp:
+        type: integer
+        description: exponent of 10
+    description: "like `${value} * 10^${exp}`. For example, `{ value: 12, exp: -1 }` is represented as 1.2"
+  RecipeParameter:
+    type: array
+    items:
+      type: object
+      properties:
+        name:
+          type: string
+        value:
+          type: object
+          properties:
+            max:
+              $ref: "#/definitions/Decimal"
+            mid:
+              $ref: "#/definitions/Decimal"
+            min:
+              $ref: "#/definitions/Decimal"
+  NotifyWorkOrderStartRequestBody:
+    type: object
+    properties:
+      operatorID:
+        type: string
+      workOrder:
+        type: object
+        properties:
+          ID:
+            type: string
+          productID:
+            type: string
+          planBatchCount:
+            type: integer
+            description: the estimated total batch
+          planQuantity:
+            $ref: "#/definitions/Decimal"
+          currentBatch:
+            type: integer
+          collectedSequence:
+            type: integer
+      recipe:
+        type: object
+        properties:
+          ID:
+            type: string
+          batchSize:
+            $ref: "#/definitions/Decimal"
+          processSteps:
+            type: array
+            items:
+              type: object
+              properties:
+                materials:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      grade:
+                        type: string
+                      quantity:
+                        type: object
+                        properties:
+                          max:
+                            $ref: "#/definitions/Decimal"
+                          mid:
+                            $ref: "#/definitions/Decimal"
+                          min:
+                            $ref: "#/definitions/Decimal"
+                controls:
+                  $ref: "#/definitions/RecipeParameter"
+          tools:
+            type: array
+            items:
+              type: object
+              properties:
+                ID:
+                  type: string
+          commonControls:
+            $ref: "#/definitions/RecipeParameter"
+          commonProperties:
+            $ref: "#/definitions/RecipeParameter"
+      sites:
+        type: array
+        items:
+          type: object
+          properties:
+            site:
+              $ref: "#/definitions/Site"
+            currentState:
+              $ref: "#/definitions/SiteBindingState"
+  NotifyWorkOrderClosedRequestBody:
+    type: object
+    properties:
+      workOrderID:
+        type: string
+  Site:
+    type: object
+    properties:
+      name:
+        type: string
+        description: site name
+      index:
+        type: integer
+        description: site index
+      station:
+        type: string
+        description: where the site is belong with
+  SiteBindingState:
+    type: object
+    description: reveal current site's properties, ex. bound materials, available to produce, etc.
+    properties:
+      resources:
+        type: array
+        description: current bound resources
+        items:
+          type: object
+          properties:
+            id:
+              type: string
+      notOK:
+        type: boolean
+        description: whether resources in the site matches requires of the recipe(ex. materials), resources in the site are available to use
+  NotifyBindResourceRequestBody:
+    type: object
+    properties:
+      bindType:
+        type: integer
+        description: "see https://gitlab.kenda.com.tw/kenda/mcom/-/blob/${xxx}/utils/bindtype/bindtype.proto for all binding action, where `${xxx}` is the corresponding branch"
+      site:
+        $ref: "#/definitions/Site"
+      currentState:
+        $ref: "#/definitions/SiteBindingState"
+responses:
+  EmptyResponse:
+    description: ok
+    schema:
+      $ref: "#/definitions/Empty"
+  DefaultError:
+    description: Unexpected error
+    schema:
+      $ref: "#/definitions/Error"
+paths:
+  /ping:
+    get:
+      summary: check server status
+      description: check the server is up or down
+      operationId: Ping
+      security: []
+      responses:
+        200:
+          description: OK
+  /{executorName}/notify/work-order/start:
+    post:
+      summary: notify what work order is in production
+      description: write the current operator, work order information, recipe information, the fact that sites are ready to produce, etc. to PLC
+      operationId: NotifyWorkOrderStart
+      tags:
+        - work-order
+      parameters:
+        - name: executorName
+          in: path
+          description: the executor name in MES Agent
+          required: true
+          type: string
+        - name: data
+          in: body
+          schema:
+            $ref: "#/definitions/NotifyWorkOrderStartRequestBody"
+      responses:
+        200:
+          $ref: "#/responses/EmptyResponse"
+        default:
+          $ref: "#/responses/DefaultError"
+  /{executorName}/notify/work-order/closed:
+    post:
+      summary: notify closed work order
+      operationId: NotifyWorkOrderClosed
+      tags:
+        - work-order
+      parameters:
+        - name: executorName
+          in: path
+          description: the executor name in MES Agent
+          required: true
+          type: string
+        - name: data
+          in: body
+          schema:
+            $ref: "#/definitions/NotifyWorkOrderClosedRequestBody"
+      responses:
+        200:
+          $ref: "#/responses/EmptyResponse"
+        default:
+          $ref: "#/responses/DefaultError"
+
+  /{executorName}/notify/resource/bind:
+    post:
+      summary: notify resource bound
+      description: notify PLC what resources is bound and reveal the site is available to produce or not
+      operationId: NotifyBindResource
+      tags:
+        - resource
+      parameters:
+        - name: executorName
+          in: path
+          description: the executor name in MES Agent
+          required: true
+          type: string
+        - name: data
+          in: body
+          schema:
+            $ref: "#/definitions/NotifyBindResourceRequestBody"
+      responses:
+        200:
+          $ref: "#/responses/EmptyResponse"
+        default:
+          $ref: "#/responses/DefaultError"

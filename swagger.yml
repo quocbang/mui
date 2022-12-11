@@ -1,0 +1,3947 @@
+swagger: "2.0"
+
+info:
+  version: 1.1.1
+  title: API Proposal for MUI
+  description: |
+    This is RESTful API specification for KENDA MES System.
+    The default response of each API endpoints are based on HTTP Status Code Standardization, e.g:
+      - 400 (Bad Request)
+      - 401 (Unauthorized)
+      - 403 (Forbidden)
+      - 408 (Request Timeout)
+      - 500 (Internal Server Error)
+  termsOfService: Kenda Tires Taiwan IT Manufacturing Execution System Team
+  contact:
+    email: m2100@kenda.com.tw
+  license:
+    name: "Copyright © 2021 Kenda Rubber Industrial Co. Ltd, All Rights Reserved"
+
+schemes:
+  - http
+  - https
+
+basePath: /api
+consumes: [application/json]
+produces: [application/json]
+
+securityDefinitions:
+  api_key:
+    type: apiKey
+    in: header
+    name: x-mui-auth-key
+
+security:
+  - api_key: []
+
+tags:
+  - name: account
+    description: 帳號管理相關
+  - name: legacy
+    description: PDA相關
+  - name: product
+    description: 產品相關
+  - name: plan
+    description: 排產相關
+  - name: work order
+    description: 工單相關
+  - name: station
+    description: 機台相關
+  - name: recipe
+    description: 配合配方表相關
+  - name: resource
+    description: 條碼相關
+  - name: warehouse
+    description: 倉儲相關
+  - name: site
+    description: 工位相關
+  - name: carrier
+    description: 載具相關
+  - name: produce
+    description: 生產相關
+  - name: UI
+    description: UI相關
+  - name: unspecified
+    description: 未分類
+
+definitions:
+  Principal:
+    properties:
+      ID:
+        type: string
+        description: 使用者工號/帳號
+        example: userid
+      roles:
+        $ref: "#/definitions/Roles"
+  LoginRequest:
+    properties:
+      ID:
+        type: string
+        description: 使用者工號/帳號
+      password:
+        type: string
+        description: 使用者密碼
+      loginType:
+        $ref: "#/definitions/LoginType"
+    required:
+      - ID
+      - password
+      - loginType
+  LoginType:
+    type: integer
+    description: >
+      登入類別:
+        * 0 - MES
+        * 1 - Windows
+    x-omitempty: false
+    enum: &LOGIN_TYPE
+      - 0 # MES
+      - 1 # Windows
+  LoginResponse:
+    properties:
+      token:
+        type: string
+        description: 使用者令牌(token)
+      tokenExpiry:
+        type: string
+        format: date-time
+        example: "2017-07-21T17:32:28Z"
+        description: token 過期時間
+      roles:
+        $ref: "#/definitions/Roles"
+      authorizedDepartments:
+        $ref: "#/definitions/Departments"
+  Roles:
+    type: array
+    description: 使用者角色
+    items:
+      $ref: "#/definitions/Role"
+  Role:
+    type: integer
+    x-omitempty: false
+    description: |
+      授權角色
+      定義來源參考: https://gitlab.kenda.com.tw/kenda/mcom/-/blob/${xxx}/utils/roles/roles.proto `Role` type.
+      in which `${xxx}` inside the URL reference is the specified branch name of the corresponding features.
+  Departments:
+    type: array
+    description: 部門清單
+    items:
+      $ref: "#/definitions/Department"
+  Department:
+    type: object
+    description: 部門資訊
+    properties:
+      OID:
+        type: string
+        description: 部門OID
+      ID:
+        type: string
+        description: 部門代號
+        example: M2110
+  Grade:
+    type: string
+    x-omitempty: false
+    description: 材料等級
+  MaterialStatus:
+    type: integer
+    x-omitempty: false
+    description: |
+      材料狀態
+      定義來源參考:
+      https://gitlab.kenda.com.tw/kenda/mcom/-/blob/${xxx}/utils/resources/resources.proto `MaterialStatus` enum.
+      in which `${xxx}` inside the URL reference is the specified branch name of the corresponding features.
+  ResourceMaterials:
+    type: array
+    description: 標示卡條碼資訊
+    items:
+      $ref: "#/definitions/ResourceMaterial"
+  ResourceMaterial:
+    type: object
+    description: 材料資訊
+    properties:
+      productType:
+        type: string
+        example: RUBBER
+        x-omitempty: false
+        description: 產品類別
+      ID:
+        type: string
+        x-omitempty: false
+        description: 材料代號
+      grade:
+        $ref: "#/definitions/Grade"
+      quantity:
+        type: string
+        example: "5000.1"
+        x-omitempty: false
+        description: 數量
+      unit:
+        type: string
+        x-omitempty: false
+        description: 計量單位
+      status:
+        $ref: "#/definitions/MaterialStatus"
+      expiredDate:
+        type: string
+        x-omitempty: false
+        format: date-time
+        example: "2017-07-21T17:32:28Z"
+        description: 到期時間
+      resourceID:
+        type: string
+        x-omitempty: false
+        description: 材料標示卡
+      carrierID:
+        type: string
+        x-omitempty: false
+        description: 載具代號
+      warehouse:
+        $ref: "#/definitions/Warehouse"
+      minimumDosage:
+        type: string
+        x-omitempty: false
+        description: 最小用量
+      inspections:
+        type: array
+        description: 檢驗判定原因
+        items:
+          type: object
+          properties:
+            ID:
+              type: integer
+              description: 檢驗識別碼ID
+            remark:
+              type: string
+              description: 檢驗識別碼
+      remark:
+        type: string
+        x-omitempty: false
+        description: 註解
+      createdBy:
+        type: string
+        x-omitempty: false
+        description: 建立人員
+      createdAt:
+        type: string
+        x-omitempty: false
+        format: date-time
+        example: "2017-07-21T17:32:28Z"
+        description: 建立時間
+      updatedBy:
+        type: string
+        x-omitempty: false
+        description: 變更人員
+      updatedAt:
+        type: string
+        x-omitempty: false
+        format: date-time
+        example: "2017-07-21T17:32:28Z"
+        description: 變更時間
+  BindMaterialData:
+    description: |
+      綁定材料需求量(Quantity)為空，代表綁定材料需求量為不指定。
+    type: object
+    properties:
+      resourceID:
+        type: string
+        description: 材料條碼
+      productID:
+        type: string
+        description: 產品代號
+      grade:
+        $ref: "#/definitions/Grade"
+      quantity:
+        type: string
+        example: "2000.2"
+        description: 綁定材料需求量
+        x-omitempty: false
+  BindType:
+    type: integer
+    description: |
+      綁定材料類別
+      定義來源參考: https://gitlab.kenda.com.tw/kenda/mcom/-/blob/${xxx}/utils/bindtype/bindtype.proto `BindType` enum.
+      in which `${xxx}` inside the URL reference is the specified branch name of the corresponding features.
+  BindResource:
+    description: >
+      綁定材料需求量(Quantity)為空，代表綁定材料需求量為不指定。
+    properties:
+      resourceID:
+        type: string
+        description: 綁定材料之條碼
+      productType:
+        type: string
+        example: RUBBER
+        description: 產品類別
+        x-omitempty: false
+      quantity:
+        type: string
+        example: "2000.2"
+        description: 綁定材料需求量
+        x-omitempty: false
+  Material:
+    type: object
+    description: 物料
+    properties:
+      barcode:
+        type: string
+        example: U123456789
+        description: 物料條碼編號 (修改的時候不可以修改ID)
+      productID:
+        type: string
+        example: "10010"
+        description: 產品代號
+      grade:
+        $ref: "#/definitions/Grade"
+      inventory:
+        type: string
+        example: 1200.00
+        description: 庫存量
+      status:
+        type: string
+        example: AVAL
+        description: 狀態
+      expiredAt:
+        type: string
+        format: date
+        example: 2021-04-13
+        description: 過期日期
+      createdBy:
+        type: string
+        example: anggara
+        description: 建立人員
+      createdAt:
+        type: integer
+        x-omitempty: false
+        minimum: 0
+        exclusiveMinimum: true
+        example: 1608710590
+        description: 建立時間 (in unix nano seconds)
+        readOnly: true
+      updateBy:
+        type: string
+        example: anggara
+        description: 維護人員
+      updateAt:
+        type: string
+        format: date-time
+        example: "2017-07-21T17:32:28Z"
+        description: 異動時間
+        readOnly: true
+  UpdateBarcodeBody:
+    type: object
+    description: 物料更新內容
+    properties:
+      newStatus:
+        type: string
+        example: HOLD
+        description: 狀態
+      holdReason:
+        type: string
+        example: HDWT
+        description: 管制原因 (代號)
+      extendDays:
+        type: integer
+        example: 3
+        description: 延長日
+      productCate:
+        type: string
+        example: 正式
+        description: 生產別
+      controlArea:
+        type: string
+        example: KUBB
+        description: 管制地點代號
+    required:
+      - newStatus
+      - holdReason
+      - extendDays
+      - productCate
+      - controlArea
+  CodeDescription:
+    type: object
+    properties:
+      code:
+        type: string
+        description: 代號
+      description:
+        type: string
+        description: 描述
+  Products:
+    type: array
+    description: 產品清單
+    items:
+      type: object
+      properties:
+        type:
+          type: string
+          example: RUBBER
+  RecipeProcesses:
+    type: object
+    description: 配合表工序相關資訊,不分重工流程
+    properties:
+      ID:
+        type: string
+        example: U79700N004
+        description: 配合表編號
+      processes:
+        type: array
+        description: 工序資訊清單
+        items:
+          $ref: "#/definitions/ProcessInfo"
+  ProcessInfo:
+    type: object
+    description: 工序機台資訊
+    properties:
+      OID:
+        type: string
+        description: 工序OID
+      name:
+        type: string
+        description: 工序名稱
+      type:
+        type: string
+        description: 工序類別
+      stations:
+        type: array
+        description: 機台資訊清單
+        items:
+          $ref: "#/definitions/StationInfo"
+  StationInfo:
+    type: object
+    description: 排程機台資訊
+    properties:
+      ID:
+        type: string
+        example: U-F270
+        description: 生產機台
+      batchSize:
+        type: string
+        x-omitempty: false
+        example: "103.24"
+        description: 生產批量
+      bomList:
+        type: array
+        description: 材料基準清單
+        items:
+          type: object
+          properties:
+            productID:
+              type: string
+              example: "79700-9"
+              description: 產品代號
+            quantity:
+              type: string
+              example: "1000"
+              description: 數量
+            recipes:
+              type: array
+              items:
+                type: object
+                properties:
+                  ID:
+                    type: string
+                    example: U79700N004
+                    description: 配合表編號
+                  processes:
+                    type: array
+                    description: 工序資訊清單
+                    items:
+                      type: object
+                      description: 工序機台資訊
+                      properties:
+                        OID:
+                          type: string
+                          description: 工序OID
+                        name:
+                          type: string
+                          description: 工序名稱
+                        type:
+                          type: string
+                          description: 工序類別
+                        stations:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              ID:
+                                type: string
+                                example: U-F270
+                                description: 生產機台
+                              batchSize:
+                                type: string
+                                x-omitempty: false
+                                example: "103.24"
+                                description: 生產批量
+  BomData:
+    type: object
+    properties:
+      productID:
+        type: string
+        description: 產品代號
+      grade:
+        type: string
+        description: 材料等級
+      maxValue:
+        type: string
+        description: 材料上限值
+      standardValue:
+        type: string
+        description: 材料基準值
+      minValue:
+        type: string
+        description: 材料下限值
+      requiredRecipeID:
+        type: string
+        description: 需求配合表
+      substitutes:
+        type: array
+        description: 替代材料清單
+        items:
+          type: string
+  Table:
+    type: object
+    x-nullable: false
+    x-omitempty: false
+    properties:
+      columns:
+        type: array
+        items:
+          type: object
+          properties:
+            name:
+              type: string
+              x-omitempty: false
+              description: 欄位名稱
+            unit:
+              type: string
+              x-omitempty: false
+              description: 欄位單位
+      rows:
+        type: array
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+                x-omitempty: false
+                description: 欄位名稱
+              value:
+                type: string
+                x-omitempty: false
+                description: 欄位資料
+  StationBOM:
+    type: object
+    x-nullable: false
+    properties:
+      ID:
+        type: string
+        x-omitempty: false
+        description: 機台號
+      control:
+        type: object
+        x-omitempty: false
+        x-nullable: false
+        description: 機台參數
+        properties:
+          step:
+            $ref: "#/definitions/Table"
+          common:
+            type: array
+            items:
+              type: object
+              properties:
+                rowName:
+                  type: string
+                  x-omitempty: false
+                  description: 項目
+                unit:
+                  type: string
+                  x-omitempty: false
+                  description: 單位
+                minValue:
+                  type: string
+                  x-omitempty: false
+                  description: 最小值
+                maxValue:
+                  type: string
+                  x-omitempty: false
+                  description: 最大值
+      bomList:
+        type: array
+        description: 材料清單
+        items:
+          $ref: "#/definitions/BomData"
+  AllProcessProductInfo:
+    type: object
+    x-omitempty: false
+    description: 工序機台產出資訊
+    properties:
+      name:
+        type: string
+        x-omitempty: false
+        description: 工序名稱
+      type:
+        type: string
+        x-omitempty: false
+        description: 工序類別
+      stations:
+        type: array
+        description: 機台材料清單
+        items:
+          $ref: "#/definitions/StationBOM"
+      product:
+        type: object
+        x-omitempty: false
+        x-nullable: false
+        description: 產出產品
+        properties:
+          id:
+            type: string
+            x-omitempty: false
+            description: 產出產品代號
+          type:
+            type: string
+            x-omitempty: false
+            description: 產出產品類別
+  OptionalFlowsProcess:
+    type: object
+    x-omitempty: false
+    description: 重工流程
+    properties:
+      name:
+        type: string
+        x-omitempty: false
+        description: 重工流程名稱
+      maxRepetitions:
+        type: integer
+        x-omitempty: false
+        description: 執行重工次數上限
+      processes:
+        type: array
+        description: 重工工序資訊清單
+        items:
+          $ref: "#/definitions/AllProcessProductInfo"
+
+  PlanData:
+    type: object
+    description: 排產資料
+    properties:
+      productID:
+        type: string
+        example: 79700-9
+        description: 產品代號
+      dayQuantity:
+        type: string
+        example: "100"
+        description: 需求量(日)
+      weekQuantity:
+        type: string
+        example: "800"
+        description: 需求量(週)
+      stockQuantity:
+        type: string
+        example: "1000"
+        description: 庫存量
+      scheduledQuantity:
+        type: string
+        example: "500"
+        description: 已派工量
+
+  CreateWorkOrder:
+    type: object
+    description: |
+      批量(batchesQuantity)、首數量(batchCount)和預計總量(planQuantity)注意事項:
+        當batchSize為0，只需要提供批量(batchesQuantity)。
+        當batchSize為1或2，只需要提供首數量(batchCount)和預計總量(planQuantity)。
+    properties:
+      departmentOID:
+        type: string
+        description: 部門OID
+      recipe:
+        $ref: '#/definitions/Recipe'
+      station:
+        type: string
+        example: U-DRUG-AUTO
+        description: 生產機台
+      batchSize:
+        type: integer
+        description: >
+          狀態:
+            * 0 - 每首產量
+            * 1 - 每首固定量
+            * 2 - 預計總量
+        enum:
+          - 0 # 每首產量
+          - 1 # 每首固定量
+          - 2 # 預計總量
+      batchesQuantity:
+        type: array
+        items:
+          type: string
+        description: 批量
+        example:
+          - "1200"
+          - "1200"
+          - "300"
+      batchCount:
+        type: integer
+        description: 首數量
+      planQuantity:
+        type: string
+        description: 預計總量
+      planDate:
+        type: string
+        example: "2020-12-23"
+        format: date
+        description: 預計生產日
+      parentID:
+        type: string
+        description: 父工單號
+    required:
+      - departmentOID
+      - recipe
+      - station
+      - planDate
+  UpdateWorkOrder:
+    type: object
+    required:
+      - recipe
+      - station
+      - planDate
+    properties:
+      recipe:
+        $ref: '#/definitions/Recipe'
+      station:
+        type: string
+        example: U-DRUG-AUTO
+        description: 生產機台
+      batchSize:
+        type: integer
+        description: >
+          狀態:
+            * 0 - 每首產量
+            * 1 - 每首固定量
+            * 2 - 預計總量
+        enum:
+          - 0 # 每首產量
+          - 1 # 每首固定量
+          - 2 # 預計總量
+      batchesQuantity:
+        type: array
+        items:
+          type: string
+        description: 批量 (required while batchSize == 0)
+        example:
+          - "1200"
+          - "1200"
+          - "300"
+      batchCount:
+        type: integer
+        description: 首數量 (required while batchSize == 1 or 2)
+      planQuantity:
+        type: string
+        description: 預計總量 (required while batchSize == 1 or 2)
+      planDate:
+        type: string
+        example: "2020-12-23"
+        format: date
+        description: 預計生產日
+  Recipe:
+    type: object
+    properties:
+      processOID:
+        type: string
+        description: 工序OID
+      processName:
+        type: string
+        description: 工序名稱
+      processType:
+        type: string
+        description: 工序類別
+      ID:
+        type: string
+        example: U79700N004
+        description: 配合表編號
+  WorkOrders:
+    type: array
+    items:
+      $ref: "#/definitions/WorkOrder"
+    description: 工單清單
+  WorkOrder:
+    type: object
+    description: |
+      工單資訊
+      當batchSize為0，只會提供批量(batchesQuantity)。
+      當batchSize為1或2，只會提供首數量(batchCount)和預計總量(planQuantity)。
+    properties:
+      ID:
+        type: string
+        example: E43E033
+        description: 工單ID (全大寫)，新增工單ID後端自行產生。
+      departmentOID:
+        type: string
+        description: 部門OID
+      recipe:
+        $ref: "#/definitions/Recipe"
+      productID:
+        type: string
+        description: 產品代號
+        example: 79700-9
+      station:
+        type: string
+        example: U-DRUG-AUTO
+        description: 生產機台
+      batchSize:
+        type: integer
+        x-omitempty: false
+        description: >
+          狀態:
+            * 0 - 每首產量
+            * 1 - 每首固定量
+            * 2 - 預計總量
+        enum:
+          - 0 # 每首產量
+          - 1 # 每首固定量
+          - 2 # 預計總量
+      batchesQuantity:
+        type: array
+        items:
+          type: string
+        description: 批量
+        example:
+          - "1200"
+          - "1200"
+          - "300"
+      batchCount:
+        type: integer
+        description: 首數量
+      planQuantity:
+        type: string
+        description: 預計總量
+      planDate:
+        type: string
+        example: "2020-12-23"
+        format: date
+        description: 預計生產日
+      sequence:
+        type: integer
+        x-omitempty: false
+        example: 1
+        description: 預計生產次序
+        minimum: 0
+        exclusiveMinimum: true
+      status:
+        $ref: "#/definitions/WorkOrderStatus"
+      updateBy:
+        type: string
+        description: 維護人員
+      updateAt:
+        type: string
+        format: date-time
+        example: "2017-07-21T17:32:28Z"
+        description: 異動時間
+      parentID:
+        type: string
+        description: 父工單號
+  WorkOrderStatus:
+    type: integer
+    x-omitempty: false
+    description: |
+      工單狀態:
+        * 0 - pending   已排定
+        * 1 - active    生產中
+        * 2 - closing   待收料
+        * 3 - closed    已完成
+        * 4 - skipped   已跳過
+      定義來源參考：https://gitlab.kenda.com.tw/kenda/commons/-/blob/master/src/proto/mes/v2/workorder/workorder.proto `Status` enum.
+  ProductInfo:
+    type: object
+    properties:
+      productType:
+        type: string
+        description: 產品類別
+      productID:
+        type: string
+        description: 產品代號
+      grade:
+        type: string
+        description: 產品等級
+      quantity:
+        type: string
+        description: 產品庫存量
+      unit:
+        type: string
+        description: 單位
+      lotNumber:
+        type: string
+        description: 批號
+      productionTime:
+        type: string
+        format: date-time
+        description: 製造日
+      expiryTime:
+        type: string
+        format: date-time
+        description: 過期日
+    description: 產品資訊
+    required:
+      - productType
+      - productID
+      - grade
+      - quantity
+      - unit
+      - lotNumber
+      - productionTime
+      - expiryTime
+  Warehouse:
+    type: object
+    x-omitempty: false
+    properties:
+      ID:
+        type: string
+        description: 倉庫名稱
+      location:
+        type: string
+        description: 倉庫儲位
+    required:
+      - ID
+      - location
+  AccountData:
+    type: array
+    items:
+      type: object
+      properties:
+        employeeID:
+          type: string
+          example: 000000
+          description: 人員工號
+        roles:
+          $ref: "#/definitions/Roles"
+      required:
+        - employeeID
+        - roles
+  CarrierData:
+    type: object
+    properties:
+      ID:
+        type: string
+        description: 載具代號
+        readOnly: true
+      allowedMaterial:
+        type: string
+        description: 可放材料
+        maxLength: 20
+      updateBy:
+        type: string
+        description: 維護人員
+        readOnly: true
+      updateAt:
+        type: string
+        format: date-time
+        example: "2017-07-21T17:32:28Z"
+        description: 維護時間
+        readOnly: true
+    required:
+      - allowedMaterial
+  SiteActionMode:
+    type: integer
+    x-omitempty: false
+    description: |
+      工位動作
+      READ 代表讀取工位資訊(GET方法使用)
+      ADD 代表新增工位 (PATCH/POST方法使用)
+      REMOVE 代表刪除工位 (PATCH/POST方法使用)
+      定義來源:
+        * 0 - READ
+        * 1 - ADD
+        * 2 - REMOVE
+    enum: &SITE_ACTION_MODE
+      - 0
+      - 1
+      - 2
+  SiteType:
+    type: integer
+    x-omitempty: false
+    description: |
+      工位類別
+      定義來源請參考:
+      https://gitlab.kenda.com.tw/kenda/mcom/-/blob/${xxx}/utils/sites/sites.proto `Type` enum.
+      which the `${xxx}` inside the URL reference is the specified branch name of the corresponding features.
+  SiteSubType:
+    type: integer
+    x-omitempty: false
+    description: |
+      工位子類別
+      定義來源參考:
+      https://gitlab.kenda.com.tw/kenda/mcom/-/blob/${xxx}/utils/sites/sites.proto `SubType` enum.
+      which the `${xxx}` inside the URL reference is the specified branch name of the corresponding features.
+  Site:
+    type: object
+    description: |
+      工位資訊
+      - actionMode 資料依據GET/PATCH方法給資料:
+        GET 方法: 統一回傳ActionMode=0 (READ)
+        PATCH 方法: 更新資料的時候請求只需要ADD跟REMOVE的資料即可，沒有更新到的工位資訊(原本存在的單沒有要更動的)不必給。
+      - 會依據工位類別填寫content資訊.
+        e.g:
+        content資料依據type取得
+        假設 type=CONTAINER, subType= MATERIALS, 取得content.container資料裡面的materialSite資料.
+        當沒有工位的詳細資料時，slot、container、collection、queue、colqueue統一回傳content: {}
+    properties:
+      actionMode:
+        $ref: "#/definitions/SiteActionMode"
+      name:
+        type: string
+        description: 工位名稱
+        maxLength: 16
+      index:
+        type: integer
+        x-omitempty: false
+        description: 工位編號
+      type:
+        $ref: "#/definitions/SiteType"
+      subType:
+        $ref: "#/definitions/SiteSubType"
+      content:
+        type: object
+        properties:
+          slot:
+            $ref: "#/definitions/BoundResource"
+          container:
+            $ref: "#/definitions/ContainerContent"
+          collection:
+            $ref: "#/definitions/CollectionContent"
+          queue:
+            $ref: "#/definitions/QueueContent"
+          colqueue:
+            $ref: "#/definitions/CollectionQueueContent"
+        description: 工位詳細資料
+        readOnly: true
+  BoundResource:
+    description: |
+      材料數量(Quantity)為空，代表掛載不指定數量。
+    type: object
+    properties:
+      materialSite:
+        type: object
+        properties:
+          resourceID:
+            type: string
+            description: 材料條碼
+          ID:
+            type: string
+            description: 材料名稱
+          grade:
+            type: string
+            description: 材料等級
+          quantity:
+            type: string
+            x-omitempty: false
+            description: 材料數量
+      toolSite:
+        type: object
+        properties:
+          resourceID:
+            type: string
+            description: 工具條碼
+          installedTime:
+            type: string
+            format: date-time
+            example: "2017-07-21T17:32:28Z"
+            description: 安裝時間
+      operatorSite:
+        type: object
+        properties:
+          employeeID:
+            type: string
+            description: 人員工號
+          group:
+            type: integer
+            x-omitempty: false
+            description: 工作群組
+          workDate:
+            type: string
+            format: date-time
+            example: "2017-07-21T17:32:28Z"
+            description: 工作時間
+          expiryTime:
+            type: string
+            format: date-time
+            example: "2017-07-21T17:32:28Z"
+            description: 過期時間
+  ContainerContent:
+    type: array
+    items:
+      $ref: "#/definitions/BoundResource"
+  CollectionContent:
+    type: array
+    items:
+      $ref: "#/definitions/BoundResource"
+  QueueContent:
+    type: array
+    items:
+      $ref: "#/definitions/BoundResource"
+  CollectionQueueContent:
+    type: array
+    items:
+      $ref: "#/definitions/CollectionContent"
+  StationData:
+    type: object
+    description: 機台維護資訊
+    properties:
+      ID:
+        type: string
+        description: 機台號
+        readOnly: true
+      code:
+        type: string
+        description: 機台號碼(生產批號用)
+      description:
+        type: string
+        description: 機台描述
+      state:
+        $ref: "#/definitions/StationState"
+      sites:
+        type: array
+        items:
+          $ref: "#/definitions/Site"
+      insertedBy:
+        type: string
+        example: anggara
+        description: 建立人員
+        readOnly: true
+      insertedAt:
+        type: string
+        format: date-time
+        example: "2017-07-21T17:32:28Z"
+        description: 建立時間
+        readOnly: true
+      updateBy:
+        type: string
+        example: anggara
+        description: 維護人員
+        readOnly: true
+      updateAt:
+        type: string
+        format: date-time
+        example: "2017-07-21T17:32:28Z"
+        description: 異動時間
+        readOnly: true
+    required:
+      - code
+      - description
+      - state
+  StationState:
+    type: integer
+    x-omitempty: false
+    description: |
+      機台狀態
+      定義來源參考:
+      https://gitlab.kenda.com.tw/kenda/mcom/-/blob/${xxx}/utils/stations/stations.proto `State` enum.
+      which the `${xxx}` inside the URL reference is the specified branch name of the corresponding features.
+  SiteInfo:
+    type: object
+    description: 工位資訊
+    properties:
+      stationID:
+        type: string
+        description: 機台號
+        x-omitempty: false
+      siteName:
+        type: string
+        description: 工位名稱
+        x-omitempty: false
+      siteIndex:
+        type: integer
+        description: 工位編號
+        x-omitempty: false
+        default: 0
+  StationConfig:
+    type: object
+    description: |
+      機台設定檔
+      當投收料分開，需要提供相關作業員工位。
+    properties:
+      separateMode:
+        type: boolean
+        description: 投收料分開
+        x-omitempty: false
+      feed:
+        type: object
+        description: 投料設定
+        properties:
+          productType:
+            type: array
+            items:
+              type: string
+              description: 掛載與投料的產品類型
+            x-omitempty: false
+          materialResource:
+            type: boolean
+            description: 材料條碼
+            x-omitempty: false
+          standardQuantity:
+            type: integer
+            enum:
+              - 0 # RECIPE
+              - 1 # USER
+            x-omitempty: false
+            description: |
+              使用配合表基準量投料
+              投料數量來源:
+                * 0 - RECIPE
+                * 1 - USER
+          operatorSites:
+            type: array
+            description: 投料作業員工位
+            items:
+              type: object
+              $ref: "#/definitions/SiteInfo"
+        required:
+          - "materialResource"
+      collect:
+        type: object
+        description: 收料設定
+        properties:
+          resource:
+            type: boolean
+            description: 收料條碼
+            x-omitempty: false
+          carrierResource:
+            type: boolean
+            description: 載具條碼
+            x-omitempty: false
+          quantity:
+            type: object
+            properties:
+              type:
+                type: integer
+                description: >
+                  收料數量來源:
+                    * 0 - USER
+                    * 1 - PLC
+                enum:
+                  - 0 # USER
+                  - 1 # PLC
+                x-omitempty: false
+              value:
+                type: string
+                description: 提示UI收料數量
+                x-omitempty: false
+          operatorSites:
+            type: array
+            description: 收料作業員工位
+            items:
+              type: object
+              $ref: "#/definitions/SiteInfo"
+        required:
+          - "resource"
+          - "carrierResource"
+          - "quantity"
+  FeedResource:
+    type: object
+    properties:
+      ID:
+        type: string
+        description: 材料代號
+      quantity:
+        type: string
+        description: 投料數量
+  MesResponse:
+    type: object
+    description: MES回傳資訊
+    properties:
+      success:
+        type: boolean
+        x-omitempty: false
+        description: 成功執行
+      enableForce:
+        type: boolean
+        x-omitempty: false
+        description: 可強制執行
+      error:
+        type: array
+        x-omitempty: false
+        items:
+          type: object
+          properties:
+            code:
+              type: integer
+              description: 錯誤代號
+            details:
+              type: string
+              description: 錯誤資訊
+  ErrorResponse:
+    type: object
+    properties:
+      code:
+        type: integer
+        description: 錯誤代號
+      details:
+        type: string
+        description: 錯誤資訊
+  MaterialResourceLabelFieldName:
+    type: object
+    description: 欄位名稱
+    properties:
+      station:
+        type: string
+        description: 機台號
+      nextStation:
+        type: string
+        description: 工位名稱
+      productID:
+        type: string
+        description: 產品代號
+      productionDate:
+        type: string
+        description: 生產日期
+      expiryDate:
+        type: string
+        description: 到期日
+      quantity:
+        type: string
+        description: 數量
+      resourceID:
+        type: string
+        description: 材料條碼
+  WorkOrderRateData:
+    type: object
+    properties:
+      departmentID:
+        type: string
+        description: 部門代號
+        x-order: 0
+      workOrderID:
+        type: string
+        description: 工單號碼
+        x-order: 1
+      productID:
+        type: string
+        description: 產品代號
+        x-order: 2
+      station:
+        type: string
+        description: 生產機台
+        x-order: 3
+      planQuantity:
+        type: string
+        description: 預計數量
+        x-order: 4
+      collectedQuantity:
+        type: string
+        description: 生產數量
+        x-order: 5
+      ratio:
+        type: string
+        description: 達成率(倒扣)
+        x-order: 6
+      productionTime:
+        type: string
+        x-nullable: true
+        description: 開始作業時間
+        x-order: 7
+      productionEndTime:
+        type: string
+        x-nullable: true
+        description: 結束作業時間
+        x-order: 8
+      updateBy:
+        type: string
+        description: 維護人員
+        x-order: 9
+      createdBy:
+        type: string
+        description: 建立人員
+        x-order: 10
+      recipeID:
+        type: string
+        description: 配合表編號
+        x-order: 11      
+  # Schema for error response body
+  Error:
+    type: object
+    properties:
+      code:
+        type: integer
+        x-omitempty: false
+        description: |
+          自定義錯誤碼
+          定義來源參考:
+          https://gitlab.kenda.com.tw/kenda/mcom/-/blob/${xxx}/errors/code.proto `Code` enum.
+          in which `${xxx}` inside the URL reference is the specified branch name of the corresponding features.
+      details:
+        type: string
+        description: 補充訊息
+
+responses:
+  Default:
+    description: Unexpected error
+    schema:
+      $ref: "#/definitions/Error"
+
+# Common Required Parameters Definition.
+parameters:
+  DepartmentOID:
+    in: path
+    name: departmentOID
+    type: string
+    required: true
+    description: 部門OID
+  ProductType:
+    in: path
+    name: productType
+    type: string
+    required: true
+    description: 產品類別
+  ProductID:
+    in: path
+    name: productID
+    type: string
+    required: true
+    description: 產品代號
+  StationID:
+    in: path
+    name: station
+    type: string
+    required: true
+    description: 機台ID
+  Date:
+    in: path
+    name: date
+    type: string
+    format: date
+    required: true
+    description: 日期
+paths:
+  /server/status:
+    get:
+      summary: 檢查server狀態用
+      operationId: CheckServerStatus
+      security: []
+      responses:
+        200:
+          description: OK
+
+  /user/login:
+    post:
+      summary: 使用者登入
+      description: |
+        支援登入類別為:
+        - MES 帳號登入
+        - Windows 帳號登入
+      tags: [account]
+      operationId: Login
+      security: []
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: "#/definitions/LoginRequest"
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: "#/definitions/LoginResponse"
+        400:
+          description: Bad Request
+          schema:
+            $ref: "#/definitions/Error"
+        500:
+          description: Internal Error
+          schema:
+            $ref: "#/definitions/Error"
+  /user/logout:
+    post:
+      summary: 使用者登出
+      tags: [account]
+      operationId: Logout
+      security: []
+      responses:
+        200:
+          description: OK
+  /user/change-password:
+    put:
+      summary: 修改密碼(限MES帳號)
+      tags: [account]
+      operationId: ChangePassword
+      security:
+        - api_key: []
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            properties:
+              currentPassword:
+                type: string
+                description: 原密碼
+                minLength: 6
+                maxLength: 10
+              newPassword:
+                type: string
+                description: 新密碼
+                minLength: 6
+                maxLength: 10
+            required:
+              - currentPassword
+              - newPassword
+      responses:
+        200:
+          description: OK
+        default:
+          $ref: "#/responses/Default"
+  /account/role-list:
+    get:
+      summary: 取得角色清單
+      tags: [account]
+      operationId: GetRoleList
+      security:
+        - api_key: []
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    ID:
+                      $ref: "#/definitions/Role"
+                    name:
+                      type: string
+                      example: SCHEDULER
+                      description: 角色名稱
+        default:
+          $ref: "#/responses/Default"
+  /account/unauthorized/department-oid/{departmentOID}:
+    get:
+      summary: 查詢可新增角色授權帳號清單
+      tags: [account]
+      operationId: ListUnauthorizedAccount
+      security:
+        - api_key: []
+      parameters:
+        - $ref: "#/parameters/DepartmentOID"
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    employeeID:
+                      type: string
+                      description: 人員工號
+        default:
+          $ref: "#/responses/Default"
+  /account/authorized/department-oid/{departmentOID}:
+    get:
+      summary: 查詢帳號權限清單
+      tags: [account]
+      operationId: ListAuthorizedAccount
+      security:
+        - api_key: []
+      parameters:
+        - $ref: "#/parameters/DepartmentOID"
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: "#/definitions/AccountData"
+        default:
+          $ref: "#/responses/Default"
+  /account/authorization:
+    post:
+      summary: 新增帳號權限
+      description: |
+        - 不允許授權系統管理員(ADMINISTRATOR)與主管(LEADER)角色.
+        - 若想要授權系統管理員或主管角色時請再提登入異動單.
+      tags: [account]
+      operationId: CreateAccountAuthorization
+      security:
+        - api_key: []
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            properties:
+              employeeID:
+                type: string
+                description: 人員工號
+              roles:
+                $ref: "#/definitions/Roles"
+            required:
+              - employeeID
+              - roles
+      responses:
+        200:
+          description: OK
+        default:
+          $ref: "#/responses/Default"
+  /account/authorization/{employeeID}:
+    put:
+      summary: 修改帳號角色
+      description: |
+        - 不允許授權系統管理員(ADMINISTRATOR)與主管(LEADER)角色.
+        - 若想要授權系統管理員或主管角色時請再提登入異動單.
+        - 允許修改角色清單或者重置密碼需求
+      tags: [account]
+      operationId: UpdateAccountAuthorization
+      security:
+        - api_key: []
+      parameters:
+        - in: path
+          name: employeeID
+          type: string
+          required: true
+          description: 人員工號
+        - in: body
+          name: body
+          schema:
+            type: object
+            properties:
+              roles:
+                $ref: "#/definitions/Roles"
+              resetPassword:
+                type: boolean
+                description: 重置密碼
+            required:
+              - roles
+              - resetPassword
+          required: true
+      responses:
+        200:
+          description: OK
+        default:
+          $ref: "#/responses/Default"
+    delete:
+      summary: 刪除帳號
+      tags: [account]
+      operationId: DeleteAccount
+      security:
+        - api_key: []
+      parameters:
+        - in: path
+          name: employeeID
+          type: string
+          required: true
+          description: 人員工號
+      responses:
+        200:
+          description: OK
+        default:
+          $ref: "#/responses/Default"
+
+  /pda/barcode/{ID}:
+    get:
+      summary: 取得條碼資訊
+      tags: [legacy]
+      operationId: GetBarcodeInfo
+      security:
+        - api_key: []
+      parameters:
+        - in: path
+          name: ID
+          type: string
+          required: true
+          description: 條碼編號
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  material:
+                    $ref: "#/definitions/Material"
+        default:
+          $ref: "#/responses/Default"
+    put:
+      summary: 更新條碼資訊
+      tags: [legacy]
+      operationId: UpdateBarcode
+      security:
+        - api_key: []
+      parameters:
+        - in: path
+          name: ID
+          type: string
+          required: true
+          description: 條碼編號
+        - in: body
+          name: body
+          schema:
+            $ref: "#/definitions/UpdateBarcodeBody"
+          required: true
+      responses:
+        200:
+          description: OK
+        default:
+          $ref: "#/responses/Default"
+
+  /pda/barcode/update-status-list/ID/{ID}:
+    get:
+      summary: 取得管制/放行可變更狀態清單
+      tags: [legacy]
+      operationId: GetUpdateBarcodeStatusList
+      security:
+        - api_key: []
+      parameters:
+        - in: path
+          name: ID
+          type: string
+          required: true
+          description: 條碼編號
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: "#/definitions/CodeDescription"
+                description: 可變更狀態清單
+        default:
+          $ref: "#/responses/Default"
+  /pda/barcode/extend-expired-date/ID/{ID}:
+    get:
+      summary: 取得條碼可展延條碼日數
+      tags: [legacy]
+      operationId: GetExtendDays
+      security:
+        - api_key: []
+      parameters:
+        - in: path
+          name: ID
+          type: string
+          required: true
+          description: 條碼編號
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  extendDay:
+                    type: integer
+                    x-omitempty: false
+                    example: 3
+        default:
+          $ref: "#/responses/Default"
+  /pda/barcode/control-area:
+    get:
+      summary: 取得管制地點清單
+      tags: [legacy]
+      operationId: GetControlAreaList
+      security:
+        - api_key: []
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: "#/definitions/CodeDescription"
+                description: 管制地點清單
+        default:
+          $ref: "#/responses/Default"
+  /pda/barcode/reason-list:
+    get:
+      summary: 取得管制原因清單
+      tags: [legacy]
+      operationId: GetHoldReasonList
+      security:
+        - api_key: []
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: "#/definitions/CodeDescription"
+                description: 管制原因清單
+        default:
+          $ref: "#/responses/Default"
+
+  /product/active-product-types/department-oid/{departmentOID}:
+    get:
+      summary: 取得部門可生產之產品類別(部門代號必填)
+      tags: [product]
+      operationId: GetProductTypeByDepartmentList
+      security:
+        - api_key: []
+      parameters:
+        - $ref: "#/parameters/DepartmentOID"
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: "#/definitions/Products"
+        default:
+          $ref: "#/responses/Default"
+  /product/active-product-types:
+    get:
+      summary: 取得可生產產品類別
+      tags: [product]
+      operationId: GetProductTypeList
+      security:
+        - api_key: []
+      parameters:
+        - in: query
+          name: department_oid
+          type: string
+          description: 部門OID
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: "#/definitions/Products"
+        default:
+          $ref: "#/responses/Default"
+  /product/groups/department-oid/{departmentOID}/product-type/{productType}:
+    get:
+      summary: 取得產品群組規則清單
+      tags: [UI]
+      operationId: GetProductGroupList
+      security:
+        - api_key: []
+      parameters:
+        - $ref: "#/parameters/DepartmentOID"
+        - $ref: "#/parameters/ProductType"
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    parent:
+                      type: string
+                      example: 79700-9
+                      description: parent product
+                    children:
+                      type: array
+                      description: production process to produce parent product
+                      items:
+                        type: string
+                      example:
+                        - 79700-1
+                        - 79700-2
+                        - 79700-3
+        default:
+          $ref: "#/responses/Default"
+  /product/active-products/product-type/{productType}:
+    get:
+      summary: 取得產品代號清單
+      description: |
+        有設定is_last_process=true的時候表示只想要取得最終產品清單。
+      tags: [product]
+      operationId: GetProductList
+      security:
+        - api_key: []
+      parameters:
+        - $ref: "#/parameters/ProductType"
+        - in: query
+          name: is_last_process
+          type: boolean
+          description: 該產品為最終產品
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                description: 產品代號清單
+                items:
+                  type: string
+                example:
+                  - 79700-1
+                  - 79700-2
+                  - 79700-9
+        default:
+          $ref: "#/responses/Default"
+  /product/active-recipes/product-id/{productID}:
+    get:
+      summary: 取得指定產品之配合表清單
+      description: |
+        已過濾掉沒有找到配合配方表的子工單 與 過濾掉不是生產productID的工序
+      tags: [recipe]
+      operationId: GetRecipeList
+      security:
+        - api_key: []
+      parameters:
+        - $ref: "#/parameters/ProductID"
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: "#/definitions/RecipeProcesses"
+                description: 配合表機台清單
+        default:
+          $ref: "#/responses/Default"
+  /product/recipe-id/product-id/{productID}:
+    get:
+      summary: 取得配合配方代號清單
+      tags: [recipe]
+      operationId: GetRecipeIDs
+      security:
+        - api_key: []
+      parameters:
+        - $ref: "#/parameters/ProductID"
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  type: string
+                  description: 配合配方代號
+                example:
+                  - U79700X001
+                  - U712450179
+        default:
+          $ref: "#/responses/Default"
+
+  /product/recipe-process/recipe-id/{recipeID}:
+    get:
+      summary: 途程資訊清單
+      tags: [recipe]
+      operationId: GetRecipeProcessList
+      security:
+        - api_key: []
+      parameters:
+        - in: path
+          name: recipeID
+          type: string
+          required: true
+          description: 配合配方代號
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                description: 工序資訊清單
+                items:
+                  type: object
+                  description: 工序機台產出資訊含重工
+                  properties:
+                    requiredFlows:
+                      $ref: "#/definitions/AllProcessProductInfo"
+                    optionalFlows:
+                      type: array
+                      description: 重工流程清單
+                      items:
+                        $ref: "#/definitions/OptionalFlowsProcess"
+        default:
+          $ref: "#/responses/Default"
+
+  /plans/department-oid/{departmentOID}/product-type/{productType}/date/{date}:
+    get:
+      summary: 查詢排產資料
+      tags: [plan]
+      operationId: GetPlanList
+      security:
+        - api_key: []
+      parameters:
+        - $ref: "#/parameters/DepartmentOID"
+        - $ref: "#/parameters/ProductType"
+        - in: path
+          name: date
+          type: string
+          format: date
+          required: true
+          description: 預定生產日 (e.g., 2020-12-23)
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: "#/definitions/PlanData"
+        default:
+          $ref: "#/responses/Default"
+  /plan:
+    post:
+      summary: 新增排產資料
+      tags: [plan]
+      operationId: AddPlan
+      security:
+        - api_key: []
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            properties:
+              departmentOID:
+                type: string
+                description: 部門OID
+              date:
+                type: string
+                format: "date"
+                example: "2021-01-15"
+                description: 預計生產日
+              productType:
+                type: string
+                example: RUBBER
+                description: 產品類別
+              productID:
+                type: string
+                example: 79700-9
+                description: 產品代號
+              dayQuantity:
+                type: string
+                example: "100"
+                description: 需求量(日)
+            required:
+              - departmentOID
+              - date
+              - productType
+              - productID
+              - dayQuantity
+      responses:
+        200:
+          description: OK
+        default:
+          $ref: "#/responses/Default"
+  /work-orders:
+    post:
+      summary: 新增工單
+      description: 回傳工單號順序依據request body
+      tags: [work order]
+      operationId: CreateStationScheduling
+      security:
+        - api_key: []
+      parameters:
+        - in: body
+          name: body
+          description: 新增機台排程清單
+          required: true
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/CreateWorkOrder"
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  type: string
+                  description: 工單號
+        default:
+          $ref: "#/responses/Default"
+    put:
+      summary: 更新工單排序
+      description: |
+        終止工單時不需給sequence，任何狀態都可以終止工單
+      tags: [work order]
+      operationId: UpdateStationScheduling
+      security:
+        - api_key: []
+      parameters:
+        - in: body
+          name: body
+          description: 更新工單排程清單
+          required: true
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                ID:
+                  type: string
+                  description: 工單編號
+                forceToAbort:
+                  type: boolean
+                  description: 強制終止工單
+                sequence:
+                  type: integer
+                  x-omitempty: false
+                  example: 1
+                  description: 預計生產次序
+                  minimum: 0
+                  exclusiveMinimum: true
+              required:
+                - ID
+                - forceToAbort
+                - sequence
+      responses:
+        200:
+          description: OK
+        default:
+          $ref: "#/responses/Default"
+  /schedulings/station/{station}/date/{date}:
+    get:
+      summary: 取得機台指定日期的工單清單
+      tags: [work order]
+      operationId: GetStationScheduling
+      description: 查詢當天所有工單
+      security:
+        - api_key: []
+      parameters:
+        - $ref: "#/parameters/StationID"
+        - $ref: "#/parameters/Date"
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: "#/definitions/WorkOrders"
+        default:
+          $ref: "#/responses/Default"
+  /work-orders/{id}:
+    put:
+      summary: 更新工單資訊
+      description: |
+        僅允許pending狀態的工單進行更新
+      tags: [work order]
+      operationId: UpdateWorkOrder
+      security:
+        - api_key: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          type: string
+          description: 工單號碼
+        - in: body
+          name: body
+          description: 更新工單資訊
+          required: true
+          schema:
+            $ref: "#/definitions/UpdateWorkOrder"
+      responses:
+        200:
+          description: OK
+        default:
+          $ref: "#/responses/Default"
+  /departments:
+    get:
+      summary: 取得部門代號清單
+      tags: [unspecified]
+      operationId: ListDepartmentIDs
+      security:
+        - api_key: []
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    departmentID:
+                      type: string
+                      description: 部門代號
+        default:
+          $ref: "#/responses/Default"
+  /station-list/department-oid/{departmentOID}:
+    get:
+      summary: 查詢機台清單
+      tags: [station]
+      operationId: GetStationList
+      security:
+        - api_key: []
+      parameters:
+        - $ref: "#/parameters/DepartmentOID"
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                description: 機台清單
+                items:
+                  type: object
+                  properties:
+                    ID:
+                      type: string
+                      example: U-F270
+        default:
+          $ref: "#/responses/Default"
+
+  /resource/material/stock:
+    post:
+      summary: 新增產品標示卡
+      tags: [resource]
+      operationId: AddMaterial
+      security:
+        - api_key: []
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            properties:
+              warehouse:
+                $ref: "#/definitions/Warehouse"
+              resource:
+                $ref: "#/definitions/ProductInfo"
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  resourceID:
+                    type: string
+                    example: R123456789
+                    description: 產品標示卡
+        default:
+          $ref: "#/responses/Default"
+
+  /resource/material/split:
+    post:
+      summary: 分批材料標示卡
+      tags: [resource]
+      operationId: SplitMaterial
+      security:
+        - api_key: []
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            properties:
+              productType:
+                type: string
+                description: 產品類別
+              resourceID:
+                type: string
+                description: 材料條碼
+              splitQuantity:
+                type: number
+                description: 分批數量
+                minimum: 0.000001
+              remark:
+                type: string
+                description: 備註
+              inspections:
+                type: array
+                description: 檢驗標示卡
+                items:
+                  type: integer
+                  description: 檢驗識別碼ID
+
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  resourceID:
+                    type: string
+                    example: R123456789
+                    description: 產品標示卡
+        default:
+          $ref: "#/responses/Default"
+
+  /resource/material/info/resource-id/{ID}:
+    get:
+      summary: 取得材料標示卡資訊
+      tags: [resource]
+      operationId: GetMaterialResourceInfo
+      security:
+        - api_key: []
+      parameters:
+        - in: path
+          name: ID
+          type: string
+          required: true
+          description: 條碼
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: "#/definitions/ResourceMaterials"
+        default:
+          $ref: "#/responses/Default"
+
+  /resource/material/info/product-type/{productType}:
+    get:
+      summary: 取得物料產品資訊
+      description: |
+        可以指定以下欄位進行排序:
+          - created_at
+
+        若未指定排序方式, 預設依據 created_at 遞增排序.
+      tags: [product]
+      operationId: GetMaterialResourceInfoByType
+      security:
+        - api_key: []
+      parameters:
+        - $ref: "#/parameters/ProductType"
+        - in: query
+          name: productID
+          type: string
+          description: 產品代號
+        - in: query
+          name: status
+          type: integer
+          description: 物料狀態
+        - in: query
+          name: startDate
+          type: string
+          format: date-time
+          description: 開始日期(過濾建立日期起始日)
+        - in: query
+          name: page
+          type: integer
+          description: 頁數
+        - in: query
+          name: limit
+          type: integer
+          description: 每頁筆數
+        - in: body
+          name: body
+          required: false
+          schema:
+            properties:
+              orderRequest:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    orderName:
+                      type: string
+                      description: 排序欄位
+                    descending:
+                      type: boolean
+                      description: 降冪
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  items:
+                    $ref: "#/definitions/ResourceMaterials"
+                  total:
+                    type: integer
+                    description: 總筆數
+        default:
+          $ref: "#/responses/Default"
+
+  /resource/material/status:
+    get:
+      summary: 取得材料狀態清單
+      tags: [resource]
+      operationId: ListMaterialStatus
+      security:
+        - api_key: []
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    ID:
+                      $ref: "#/definitions/MaterialStatus"
+                    name:
+                      type: string
+                      example: AVAILABLE
+                      description: 材料狀態名稱
+        default:
+          $ref: "#/responses/Default"
+
+  /warehouse/resource/{ID}:
+    get:
+      summary: 取得條碼倉儲位置
+      tags:
+        - warehouse
+      operationId: GetWarehouseInfo
+      security:
+        - api_key: []
+      parameters:
+        - in: path
+          name: ID
+          type: string
+          required: true
+          description: 條碼編號
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  warehouseID:
+                    type: string
+                    description: 倉庫別
+                    example: A
+                  location:
+                    type: string
+                    description: 倉庫儲位
+                    example: 01
+        default:
+          $ref: "#/responses/Default"
+    put:
+      summary: 物料倉儲搬移
+      tags:
+        - warehouse
+      operationId: WarehouseTransaction
+      security:
+        - api_key: []
+      parameters:
+        - in: path
+          name: ID
+          type: string
+          required: true
+          description: 條碼編號
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            properties:
+              newWarehouseID:
+                type: string
+                description: 新倉庫別
+              newLocation:
+                type: string
+                description: 新倉庫儲位
+            required:
+              - newWarehouseID
+              - newLocation
+      responses:
+        200:
+          description: OK
+        default:
+          $ref: "#/responses/Default"
+
+  /site/material/station/{station}/site-name/{siteName}/site-index/{siteIndex}:
+    get:
+      summary: 取得指定機台工位之已綁定材料
+      tags: [site]
+      operationId: GetSiteMaterialList
+      security:
+        - api_key: []
+      parameters:
+        - in: path
+          name: station
+          type: string
+          required: true
+          description: 機台號
+        - in: path
+          name: siteName
+          type: string
+          required: true
+          description: 工位名稱
+        - in: path
+          name: siteIndex
+          type: integer
+          required: true
+          description: 工位編號
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: "#/definitions/BindMaterialData"
+        default:
+          $ref: "#/responses/Default"
+  /site/resources/bind/auto:
+    post:
+      summary: 綁定/清除/彈出工位材料(可操作多筆材料到一個工位上)
+      description: |
+        - @parameter: body.queueOption 三擇一(head/tail/index只能填寫其中一項)
+                      如果不幸使用者給大於一項的項目時，系統會採用優先順序: head > tail > index。
+                      for instance: 如果queueOption給head=true和tail=true,則會採用head=true。
+        - @parameter: `body.resources` 在 綁定/新增 材料時，為必要條件，其他狀況(像是清除誤差)則不必給。
+      tags: [site]
+      operationId: AutoBindSiteResources
+      security:
+        - api_key: []
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            properties:
+              workOrderID:
+                type: string
+                description: 工單號碼
+              station:
+                type: string
+                description: 機台號
+              bindType:
+                $ref: "#/definitions/BindType"
+              siteName:
+                type: string
+                description: 工位名稱
+              siteIndex:
+                type: integer
+                description: 工位編號
+              resources:
+                type: array
+                items:
+                  $ref: "#/definitions/BindResource"
+              queueOption:
+                type: object
+                properties:
+                  head:
+                    type: boolean
+                    description: 綁定到頭端
+                  tail:
+                    type: boolean
+                    description: 綁定到尾端
+                  index:
+                    type: integer
+                    x-omitempty: false
+                    description: 綁定到指定工位編號
+              forceBind:
+                type: object
+                description: 強制掛載
+                properties:
+                  force:
+                    type: boolean
+                    description: 強制執行
+                    x-omitempty: false
+              resourceType:
+                type: integer
+                description: >
+                  狀態:
+                    * 0 - 材料
+                    * 1 - 工具
+                enum:
+                  - 0 # 材料
+                  - 1 # 工具
+            required:
+              - station
+              - bindType
+              - siteName
+              - siteIndex
+      responses:
+        200:
+          description: OK
+        default:
+          $ref: "#/responses/Default"
+
+  /carrier/department-oid/{departmentOID}:
+    get:
+      summary: 查詢載具清單
+      tags: [carrier]
+      operationId: GetCarrierList
+      security:
+        - api_key: []
+      parameters:
+        - $ref: "#/parameters/DepartmentOID"
+        - in: query
+          name: page
+          type: integer
+          description: 頁數
+        - in: query
+          name: limit
+          type: integer
+          description: 每頁筆數
+        - in: body
+          name: body
+          required: false
+          schema:
+            properties:
+              orderRequest:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    orderName:
+                      type: string
+                      description: 排序欄位
+                    descending:
+                      type: boolean
+                      description: 降冪
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/definitions/CarrierData"
+                  total:
+                    type: integer
+                    description: 總筆數
+        default:
+          $ref: "#/responses/Default"
+  /carrier:
+    post:
+      summary: 新增載具
+      tags: [carrier]
+      operationId: CreateCarrier
+      security:
+        - api_key: []
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            properties:
+              departmentOID:
+                type: string
+                description: 部門OID
+              idPrefix:
+                type: string
+                description: 載具前兩碼
+                minLength: 2
+                maxLength: 2
+                example: AA
+              quantity:
+                type: integer
+                description: 新增數量
+                minimum: 0
+                exclusiveMinimum: true
+                maximum: 10000
+                exclusiveMaximum: true
+              allowedMaterial:
+                type: string
+                description: 可放材料
+                maxLength: 20
+            required:
+              - departmentOID
+              - idPrefix
+              - quantity
+              - allowedMaterial
+      responses:
+        200:
+          description: OK
+        default:
+          $ref: "#/responses/Default"
+  /carrier/{ID}:
+    put:
+      summary: 更新載具資料
+      tags: [carrier]
+      operationId: UpdateCarrier
+      security:
+        - api_key: []
+      parameters:
+        - in: path
+          name: ID
+          type: string
+          required: true
+          description: 載具代號
+        - in: body
+          name: body
+          required: true
+          description: 修改內容
+          schema:
+            $ref: "#/definitions/CarrierData"
+      responses:
+        200:
+          description: OK
+        default:
+          $ref: "#/responses/Default"
+    delete:
+      summary: 刪除載具
+      tags: [carrier]
+      operationId: DeleteCarrier
+      security:
+        - api_key: []
+      parameters:
+        - in: path
+          name: ID
+          type: string
+          required: true
+          description: 載具代號
+      responses:
+        200:
+          description: OK
+        default:
+          $ref: "#/responses/Default"
+
+  /station/maintenance/department-oid/{departmentOID}:
+    get:
+      summary: 查詢機台清單
+      tags: [station]
+      operationId: ListStationInfo
+      security:
+        - api_key: []
+      parameters:
+        - $ref: "#/parameters/DepartmentOID"
+        - in: query
+          name: page
+          type: integer
+          description: 頁數
+        - in: query
+          name: limit
+          type: integer
+          description: 每頁筆數
+        - in: body
+          name: body
+          required: false
+          schema:
+            properties:
+              orderRequest:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    orderName:
+                      type: string
+                      description: 排序欄位
+                    descending:
+                      type: boolean
+                      description: 降冪
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/definitions/StationData"
+                  total:
+                    type: integer
+                    description: 總筆數
+        default:
+          $ref: "#/responses/Default"
+  /station/maintenance:
+    post:
+      summary: 新增機台資訊
+      tags: [station]
+      operationId: CreateStation
+      security:
+        - api_key: []
+      parameters:
+        - in: body
+          name: body
+          schema:
+            type: object
+            properties:
+              ID:
+                type: string
+                example: U-XX120
+                description: 機台號
+                minLength: 1
+                maxLength: 32
+              departmentOID:
+                type: string
+                description: 部門OID
+              code:
+                type: string
+                description: 機台號碼(生產批號用)
+              description:
+                type: string
+                description: 機台描述
+              sites:
+                type: array
+                items:
+                  $ref: "#/definitions/Site"
+            required:
+              - ID
+              - departmentOID
+              - code
+              - description
+              - sites
+      responses:
+        200:
+          description: OK
+        default:
+          $ref: "#/responses/Default"
+  /station/maintenance/{ID}:
+    patch:
+      summary: 更新機台資訊
+      tags: [station]
+      operationId: UpdateStationInfo
+      security:
+        - api_key: []
+      parameters:
+        - in: path
+          name: ID
+          type: string
+          required: true
+          description: 機台號
+          minLength: 1
+          maxLength: 32
+        - in: body
+          name: body
+          schema:
+            $ref: "#/definitions/StationData"
+          required: true
+      responses:
+        200:
+          description: OK
+        default:
+          $ref: "#/responses/Default"
+    delete:
+      summary: 刪除機台
+      tags: [station]
+      operationId: DeleteStation
+      security:
+        - api_key: []
+      parameters:
+        - in: path
+          name: ID
+          type: string
+          required: true
+          description: 機台號
+          minLength: 1
+          maxLength: 32
+      responses:
+        200:
+          description: OK
+        default:
+          $ref: "#/responses/Default"
+
+  /site/sub-type-list:
+    get:
+      summary: 取得工位子類別清單
+      tags: [site]
+      operationId: GetSiteSubTypeList
+      security:
+        - api_key: []
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    ID:
+                      $ref: "#/definitions/SiteSubType"
+                    name:
+                      type: string
+                      example: OPERATOR
+                      description: 工位子類別名稱
+        default:
+          $ref: "#/responses/Default"
+
+  /site/type-list:
+    get:
+      summary: 取得工位類別清單
+      tags: [site]
+      operationId: GetSiteTypeList
+      security:
+        - api_key: []
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    ID:
+                      $ref: "#/definitions/SiteType"
+                    name:
+                      type: string
+                      example: CONTAINER
+                      description: 工位類別名稱
+        default:
+          $ref: "#/responses/Default"
+  /station/state:
+    get:
+      summary: 取得機台狀態清單
+      tags: [station]
+      operationId: GetStationStateList
+      security:
+        - api_key: []
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    ID:
+                      $ref: "#/definitions/StationState"
+                    name:
+                      type: string
+                      example: SHUTDOWN
+                      description: 機台狀態名稱
+        default:
+          $ref: "#/responses/Default"
+
+  /print/barcode/code39:
+    post:
+      summary: 下載載具標示卡
+      tags: [carrier]
+      produces: [application/pdf]
+      operationId: DownloadCode39
+      security: []
+      parameters:
+        - in: body
+          name: body
+          required: true
+          description: 條碼清單
+          schema:
+            type: array
+            items:
+              type: string
+              description: 條碼ID
+      responses:
+        200:
+          description: Returns PDF file
+          schema:
+            type: string
+            format: binary
+        default:
+          $ref: "#/responses/Default"
+  /print/barcode/qrcode:
+    post:
+      summary: 下載載具標示卡QRcode
+      tags: [carrier]
+      produces: [application/pdf]
+      operationId: DownloadQRCode
+      security: []
+      parameters:
+        - in: body
+          name: body
+          required: true
+          description: 條碼清單
+          schema:
+            type: array
+            items:
+              type: string
+              description: 條碼ID
+      responses:
+        200:
+          description: Returns PDF file
+          schema:
+            type: string
+            format: binary
+        default:
+          $ref: "#/responses/Default"
+  /print/resource/material:
+    post:
+      summary: 下載材料標示卡
+      tags: [resource]
+      produces: [application/pdf]
+      operationId: DownloadMaterialResource
+      security:
+        - api_key: []
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            properties:
+              productType:
+                type: string
+                description: 產品類別
+              resourceID:
+                type: string
+                description: 材料條碼
+      responses:
+        200:
+          description: Returns material resource PDF file
+          schema:
+            type: string
+            format: binary
+        default:
+          $ref: "#/responses/Default"
+  /print/work-orders/{workOrderID}/pre-material-resource:
+    post:
+      summary: 下載預列印材料標示卡
+      tags: [resource]
+      produces: [application/pdf]
+      operationId: DownloadPreMaterialResource
+      security:
+        - api_key: []
+      parameters:
+        - in: path
+          name: workOrderID
+          type: string
+          description: 工單號碼
+          required: true
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            properties:
+              fieldName:
+                description: 欄位名稱
+                $ref: "#/definitions/MaterialResourceLabelFieldName"
+
+      responses:
+        200:
+          description: Returns pre material resource barcode PDF file
+          schema:
+            type: string
+            format: binary
+        default:
+          $ref: "#/responses/Default"
+  /production-flow/work-orders/station/{stationID}:
+    get:
+      summary: 取得工單清單
+      tags: [work order]
+      operationId: ListWorkOrders
+      security:
+        - api_key: []
+      parameters:
+        - in: path
+          name: stationID
+          required: true
+          type: string
+          description: 機台號
+          minLength: 1
+          maxLength: 32
+        - in: query
+          name: workDate
+          type: string
+          format: date
+          required: true
+          description: 工作日
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    workOrderID:
+                      type: string
+                      description: 工單號碼
+                    productID:
+                      type: string
+                      description: 產品代號
+                      x-omitempty: false
+                    recipeID:
+                      type: string
+                      description: 基準代號
+                      x-omitempty: false
+                    productType:
+                      type: string
+                      description: 產品類別
+                    date:
+                      type: string
+                      format: date
+                      description: 工作日期
+                    planQuantity:
+                      type: string
+                      description: 預計數量
+                    workOrderStatus:
+                      $ref: "#/definitions/WorkOrderStatus"
+        default:
+          $ref: "#/responses/Default"
+  /production-flow/station:
+    get:
+      summary: 取得機台號清單
+      tags: [station]
+      operationId: ListStations
+      security:
+        - api_key: []
+      parameters:
+        - in: query
+          name: departmentOID
+          type: string
+          description: 部門代號
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    stationID:
+                      type: string
+                      description: 機台號
+        default:
+          $ref: "#/responses/Default"
+  /production-flow/site/station/{stationID}:
+    get:
+      summary: 取得機台號工位清單
+      tags: [station]
+      operationId: ListStationSites
+      security:
+        - api_key: []
+      parameters:
+        - in: path
+          name: stationID
+          required: true
+          type: string
+          description: 機台號
+          minLength: 1
+          maxLength: 32
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    site:
+                      description: 工位
+                      $ref: "#/definitions/SiteInfo"
+                    type:
+                      type: string
+                      description: 工位類型
+                    subType:
+                      type: integer
+                      description: >
+                        工位子類型:
+                          * 0 - 未指定
+                          * 1 - 作業員
+                          * 2 - 材料
+                          * 3 - 工具
+        default:
+          $ref: "#/responses/Default"
+  /production-flow/status/work-order/{workOrderID}:
+    put:
+      summary: 更改工單狀態
+      description: |
+        若要執行工單，工單原先狀態必須為Pending。
+        若工單狀態為Active或Closing，則代表工單已經正在執行中。
+        若要結束工單，工單原先狀態必須為執行中(Active或Closing)，才可發出結束工單。
+      tags: [work order]
+      operationId: ChangeWorkOrderStatus
+      security:
+        - api_key: []
+      parameters:
+        - in: path
+          name: workOrderID
+          type: string
+          description: 工單號碼
+          required: true
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            properties:
+              type:
+                type: integer
+                description: >
+                  狀態:
+                    * 0 - 執行工單
+                    * 1 - 關閉工單
+                enum: &STATUS_TYPE
+                  - 0 # 執行工單
+                  - 1 # 關閉工單
+              remark:
+                type: integer
+                description: >
+                  備註:
+                    * 0 - 正常執行
+                    * 1 - 排產變動
+                    * 2 - 材料異常
+                    * 3 - 機台故障
+                    * 4 - 其他
+                enum:
+                  - 0 # 正常執行
+                  - 1 # 排產變動
+                  - 2 # 材料異常
+                  - 3 # 機台故障
+                  - 4 # 其他
+      responses:
+        200:
+          description: OK
+        default:
+          $ref: "#/responses/Default"
+  /production-flow/work-order/{workOrderID}/information:
+    get:
+      summary: 查詢工單詳細資訊
+      tags: [work order]
+      operationId: GetWorkOrderInformation
+      security:
+        - api_key: []
+      parameters:
+        - in: path
+          name: workOrderID
+          required: true
+          type: string
+          description: 工單號碼
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  workOrderID:
+                    type: string
+                    description: 工單號碼
+                  productID:
+                    type: string
+                    description: 產品代號
+                  productType:
+                    type: string
+                    description: 產品類別
+                  recipeID:
+                    type: string
+                    description: 基準代號
+                    x-omitempty: false
+                  date:
+                    type: string
+                    format: date
+                    description: 工作日期
+                  workOrderStatus:
+                    type: integer
+                    description: 工單狀態
+                    x-omitempty: false
+                  planQuantity:
+                    type: string
+                    description: 預計產量
+                    x-omitempty: false
+                  currentQuantity:
+                    type: number
+                    description: 實際產量
+                    x-omitempty: false
+                  currentBatch:
+                    type: integer
+                    description: 實際首數
+                    x-omitempty: false
+                  collectSequence:
+                    type: integer
+                    description: 收料序號
+                    x-omitempty: false
+                  recipe:
+                    type: object
+                    description: 配合表
+                    properties:
+                      materials:
+                        type: array
+                        description: 材料清單
+                        items:
+                          type: object
+                          properties:
+                            ID:
+                              type: string
+                              description: 材料名稱
+                              x-omitempty: false
+                            siteName:
+                              type: string
+                              description: 工位名稱
+                              x-omitempty: false
+                            standardValue:
+                              type: number
+                              description: 基準值
+                      tools:
+                        description: 工具清單
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            ID:
+                              type: string
+                              description: 工具代號
+                              x-omitempty: false
+                            necessity:
+                              type: boolean
+                              description: 必須性
+                              x-omitempty: false
+        default:
+          $ref: "#/responses/Default"
+  /production-flow/site/information:
+    post:
+      summary: 查詢工位資訊
+      tags: [site]
+      operationId: GetSiteInformation
+      security:
+        - api_key: []
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            properties:
+              site:
+                description: 工位
+                $ref: "#/definitions/SiteInfo"
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  type:
+                    type: string
+                    description: 工位類型
+                  subType:
+                    type: integer
+                    description: >
+                      工位子類型:
+                        * 0 - 未指定
+                        * 1 - 作業員
+                        * 2 - 材料
+                        * 3 - 工具
+        default:
+          $ref: "#/responses/Default"
+  /production-flow/tool-resource/{toolResourceID}:
+    get:
+      summary: 工具條碼查詢
+      tags: [resource]
+      operationId: GetToolID
+      security:
+        - api_key: []
+      parameters:
+        - in: path
+          name: toolResourceID
+          type: string
+          required: true
+          description: 工具條碼
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  toolID:
+                    type: string
+                    description: 工具代號
+        default:
+          $ref: "#/responses/Default"
+  /production-flow/feed-collect/work-order/{workOrderID}:
+    post:
+      summary: 投料與收料
+      deprecated: true
+      tags: [produce]
+      operationId: FeedCollect
+      security:
+        - api_key: []
+      parameters:
+        - in: path
+          name: workOrderID
+          type: string
+          required: true
+          description: 工單號碼
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            properties:
+              stationID:
+                type: string
+                description: 機台號
+                minLength: 1
+                maxLength: 32
+              feed:
+                type: object
+                description: 投料
+                properties:
+                  batch:
+                    type: integer
+                    description: 首數
+                  source:
+                    type: array
+                    description: 投料來源
+                    items:
+                      type: object
+                      properties:
+                        siteInfo:
+                          description: 投料工位來源
+                          $ref: "#/definitions/SiteInfo"
+                        quantity:
+                          type: number
+                          description: 投料數量
+              collect:
+                type: object
+                description: 收料
+                properties:
+                  group:
+                    type: integer
+                    description: >
+                      班別:
+                        * 1 - 早班
+                        * 2 - 中班
+                        * 3 - 晚班
+                    x-omitempty: false
+                    enum: &LOGIN_TYPE
+                      - 1 # 早班
+                      - 2 # 中班
+                      - 3 # 晚班
+                  workDate:
+                    type: string
+                    format: date
+                    description: 工作日期
+                  sequence:
+                    type: integer
+                    description: 收料序號
+                  resourceID:
+                    type: string
+                    description: 收料條碼
+                  quantity:
+                    type: number
+                    description: 收料數量
+                  carrierResource:
+                    type: string
+                    description: 載具條碼
+                  print:
+                    type: boolean
+                    description: 列印
+                    x-omitempty: false
+      responses:
+        200:
+          description: OK
+        default:
+          $ref: "#/responses/Default"
+  /production-flow/config/station/{stationID}:
+    post:
+      summary: 設置PDA作業畫面欄位設定
+      tags: [UI]
+      operationId: SetStationConfig
+      security:
+        - api_key: []
+      parameters:
+        - in: path
+          name: stationID
+          required: true
+          type: string
+          description: 機台號
+          minLength: 1
+          maxLength: 32
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            properties:
+              stationConfig:
+                description: 機台設定檔
+                $ref: "#/definitions/StationConfig"
+      responses:
+        200:
+          description: OK
+        default:
+          $ref: "#/responses/Default"
+    get:
+      summary: 取得PDA作業畫面欄位設定
+      tags: [UI]
+      operationId: GetStationConfig
+      security:
+        - api_key: []
+      parameters:
+        - in: path
+          name: stationID
+          required: true
+          type: string
+          description: 機台號
+          minLength: 1
+          maxLength: 32
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  stationConfig:
+                    description: 機台設定檔
+                    $ref: "#/definitions/StationConfig"
+        default:
+          $ref: "#/responses/Default"
+  /work-orders-rate/department/{departmentID}:
+    get:
+      summary: 獲取工作訂單費率列表
+      tags: [work order]
+      operationId: ListWorkOrdersRate
+      security:
+        - api_key: []
+      parameters:
+        - in: path
+          name: departmentID
+          required: true
+          type: string
+          description: 部門代號
+        - in: query
+          name: workStartDate
+          type: string
+          format: date
+          required: true
+          description: 起始日期
+        - in: query
+          name: workEndDate
+          type: string
+          format: date
+          required: true
+          description: 結束日期
+        - in: query
+          name: page
+          type: integer
+          description: 頁數
+        - in: query
+          name: limit
+          type: integer
+          description: 每頁筆數
+        - in: body
+          name: body
+          required: false
+          schema:
+            properties:
+              orderRequest:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    orderName:
+                      type: string
+                      description: 排序欄位
+                    descending:
+                      type: boolean
+                      description: 降冪  
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/definitions/WorkOrderRateData"
+                  total:
+                    type: integer
+                    description: 總筆數
+        default:
+          $ref: "#/responses/Default"         
+  /production-flow/print/material-resource:
+    post:
+      summary: 列印材料標示卡
+      tags: [resource]
+      operationId: PrintMaterialResource
+      security:
+        - api_key: []
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            properties:
+              workOrderID:
+                type: string
+                description: 工單號碼
+              sequence:
+                type: integer
+                description: 收料序號
+      responses:
+        200:
+          description: OK
+        default:
+          $ref: "#/responses/Default"
+  /station/{stationID}/sign-in:
+    post:
+      summary: 機台操作人員強制登入
+      tags:
+        - station
+      operationId: StationForceSignIn
+      security:
+        - api_key: []
+      parameters:
+        - in: path
+          name: stationID
+          required: true
+          type: string
+          description: 機台號
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            properties:
+              siteName:
+                type: string
+                description: 作業員工位
+                x-omitempty: false
+              group:
+                type: integer
+                description: >
+                  班別:
+                    * 1 - 早班
+                    * 2 - 中班
+                    * 3 - 晚班
+                x-omitempty: false
+                enum: &LOGIN_TYPE
+                  - 1 # 早班
+                  - 2 # 中班
+                  - 3 # 晚班
+              workDate:
+                type: string
+                format: date
+                description: 工作日
+      responses:
+        200:
+          description: OK
+        default:
+          $ref: "#/responses/Default"
+  /stations/sign-out:
+    post:
+      summary: 機台操作人員登出
+      tags:
+        - station
+      operationId: StationSignOut
+      security:
+        - api_key: []
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            properties:
+              stationSites:
+                type: array
+                items:
+                  type: object
+                  $ref: "#/definitions/SiteInfo"
+      responses:
+        200:
+          description: OK
+        default:
+          $ref: "#/responses/Default"
+  /station/{stationID}/operator:
+    post:
+      summary: 取得指定機台工位之作業員資料
+      tags:
+        - site
+      operationId: GetStationOperator
+      security:
+        - api_key: []
+      parameters:
+        - in: path
+          name: stationID
+          required: true
+          type: string
+          description: 機台號
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            properties:
+              site:
+                description: 工位
+                $ref: "#/definitions/SiteInfo"
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  operatorID:
+                    type: string
+                    x-omitempty: false
+                    description: 操作員工號
+        default:
+          $ref: "#/responses/Default"
+
+  /work-orders/upload/department/{department}:
+    post:
+      summary: 透過檔案建立工單, 現況僅支援excel
+      tags: [work order]
+      operationId: CreateWorkOrdersFromFile
+      security:
+        - api_key: []
+      consumes:
+        - multipart/form-data
+      parameters:
+        - in: path
+          name: department
+          type: string
+          required: true
+        - in: formData
+          name: uploadFile
+          type: file
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                description: |
+                  若有錯誤的資料,將回傳錯誤的資料項次與欄位。
+                type: object
+                properties:
+                  failData:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        index:
+                          type: integer
+                          description: 筆數
+                        columns:
+                          type: array
+                          items:
+                            type: string
+                            description: 欄位名稱
+
+        default:
+          $ref: "#/responses/Default"
+
+  /mes/feed/station/{stationID}:
+    post:
+      summary: MES投料
+      tags: [produce]
+      operationId: MesFeed
+      security:
+        - api_key: []
+      parameters:
+        - in: path
+          name: stationID
+          required: true
+          type: string
+          description: 機台號
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            properties:
+              workOrderID:
+                type: string
+                description: 工單號碼
+              batch:
+                type: integer
+                description: 首數
+              resource:
+                type: array
+                minItems: 1
+                items:
+                  $ref: "#/definitions/FeedResource"
+              forceFeed:
+                type: object
+                description: 強制投料
+                properties:
+                  force:
+                    type: boolean
+                    description: 強制執行
+                    x-omitempty: false
+              closeBatch:
+                type: boolean
+                description: 關閉首數
+            required:
+              - "workOrderID"
+              - "batch"
+              - "resource"
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: "#/definitions/MesResponse"
+        default:
+          $ref: "#/responses/Default"
+  /mes/collect/station/{stationID}:
+    post:
+      summary: MES收料
+      description: |
+        若要同時執行投收料，需在Feed裡填上相關投料資訊。
+        當不需要列印時，將不回傳print資訊。
+      tags: [produce]
+      operationId: MesCollect
+      security:
+        - api_key: []
+      parameters:
+        - in: path
+          name: stationID
+          required: true
+          type: string
+          description: 機台號
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            properties:
+              workOrderID:
+                type: string
+                description: 工單號碼
+              sequence:
+                type: integer
+                description: 收料序號
+              resourceID:
+                type: string
+                description: 收料條碼
+              quantity:
+                type: string
+                description: |
+                  收料數量
+                  收料數量需大於0。
+              carrierResource:
+                type: string
+                description: 載具條碼
+              print:
+                type: boolean
+                description: 列印
+                x-omitempty: false
+              feedResourceIDs:
+                type: array
+                items:
+                  type: string
+                  description: 投料材料代號
+              forceCollect:
+                type: object
+                description: 強制收料
+                properties:
+                  force:
+                    type: boolean
+                    description: 強制執行
+                    x-omitempty: false
+            required:
+              - "workOrderID"
+              - "sequence"
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  mesResponse:
+                    $ref: "#/definitions/MesResponse"
+                  print:
+                    type: object
+                    properties:
+                      success:
+                        type: boolean
+                        description: 列印成功
+                      error:
+                        $ref: "#/definitions/ErrorResponse"
+        default:
+          $ref: "#/responses/Default"

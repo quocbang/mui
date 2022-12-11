@@ -1,0 +1,9 @@
+.box-card {
+    width: 95%;
+    margin: 0 auto;
+  }
+
+  .excel-upload-input {
+    display: none;
+    z-index: -9999;
+  }

@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package sites;
+
+enum SubType {
+    SUB_TYPE_UNSPECIFIED = 0;
+    OPERATOR    = 1;
+    MATERIAL    = 2;
+    TOOL        = 3;
+}
+
+enum Type{
+    // TYPE_UNSPECIFIED is unspecified site.
+    TYPE_UNSPECIFIED = 0;
+    // CONTAINER is a non-discrete resource site, e.g. oil tank.
+    CONTAINER   = 1;
+    // SLOT is a 1-1 resource site.
+    SLOT        = 2;
+    // COLLECTION is a resource collection site.
+    COLLECTION  = 3;
+    // QUEUE is a one-at-a-time resource site.
+    QUEUE       = 4;
+    // COLQUEUE is a collection pipeline.
+    COLQUEUE    = 5;
+}
+
+enum ActionType {
+    ADD    = 0;
+    REMOVE = 1;
+}

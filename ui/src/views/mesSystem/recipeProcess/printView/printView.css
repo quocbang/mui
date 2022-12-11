@@ -1,0 +1,58 @@
+@page {
+  margin: 1cm; /*print邊界*/
+}
+
+@media print {
+  #printPageButton {
+    display: none;
+  }
+}
+.print {
+  page-break-after: always; /*print分頁面*/
+}
+
+body {
+  width: 100%;
+}
+table {
+  width: 100%;
+  display: table-cell !important;
+  box-sizing: border-box;
+}
+.el-table__header,
+.el-table__body,
+.el-table__footer {
+  width: 100% !important;
+  border-collapse: collapse;
+  text-align: center;
+}
+table,
+table tr th,
+table tr td {
+  border: 1px solid #ddd;
+  color: #606266;
+  word-wrap: break-word;
+}
+table tr th,
+table tr td {
+  padding: 4mm 0mm;
+  word-wrap: break-word;
+}
+.el-table__body,
+tr td .cell {
+  width: 100% !important;
+}
+.el-table th.gutter {
+  display: none;
+}
+.el-table colgroup.gutter {
+  display: none;
+}
+.el-table th > .cell {
+  font-size: 1px;
+  word-wrap: break-word;
+}
+
+.el-divider {
+  border: 1px solid;
+}

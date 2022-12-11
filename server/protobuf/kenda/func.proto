@@ -1,0 +1,97 @@
+syntax = "proto3";
+
+package kenda;
+
+// FunctionOperationID is the list of existing function handler.
+// Handler Function Name Collections.
+enum FunctionOperationID{
+    GET_SERVER_STATUS = 0;
+
+    GET_BARCODE_INFO               = 1;
+    UPDATE_BARCODE                 = 2;
+    GET_UPDATE_BARCODE_STATUS_LIST = 3;
+    GET_EXTEND_DAYS                = 4;
+    GET_CONTROL_AREA_LIST          = 5;
+    GET_HOLD_REASON_LIST           = 6;
+
+    GET_PRODUCT_TYPE_LIST  = 7;
+    GET_PRODUCT_GROUP_LIST = 8;
+    GET_PRODUCT_LIST       = 9;
+    GET_RECIPE_LIST        = 10;
+
+    GET_PLAN_LIST = 11;
+    ADD_PLAN      = 12;
+
+    CREATE_STATION_SCHEDULING = 13;
+    GET_STATION_SCHEDULING    = 14;
+    UPDATE_STATION_SCHEDULING = 15;
+
+    GET_STATION_LIST = 16;
+
+    ADD_MATERIAL = 17;
+
+    GET_WAREHOUSE_INFO    = 18;
+    WAREHOUSE_TRANSACTION = 19;
+
+    GET_RECIPE_IDS          = 20;
+    GET_RECIPE_PROCESS_LIST = 21;
+
+    GET_MATERIAL_RESOURCE_INFO = 25;
+    GET_SITE_MATERIAL_LIST     = 26;
+    BIND_RESOURCE              = 27;
+
+    CHANGE_USER_PASSWORD = 28;
+
+    LIST_CARRIER   = 29;
+    CREATE_CARRIER = 30;
+    UPDATE_CARRIER = 31;
+    DELETE_CARRIER = 32;
+
+    GET_ROLE_LIST             = 33;
+    LIST_AUTHORIZED_ACCOUNT   = 34;
+    LIST_UNAUTHORIZED_ACCOUNT = 35;
+    CREATE_ACCOUNT            = 36;
+    UPDATE_ACCOUNT            = 37;
+    DELETE_ACCOUNT            = 38;
+
+    SITE_TYPE_LIST    = 39;
+    SITE_SUBTYPE_LIST = 40;
+
+    LIST_STATION_INFO   = 41;
+    CREATE_STATION      = 42;
+    UPDATE_STATION_INFO = 43;
+    DELETE_STATION      = 44;
+
+    LIST_STATION_STATE = 45;
+
+    GET_MATERIAL_RESOURCE_INFO_BY_TYPE = 46;
+    LIST_MATERIAL_STATUS               = 47;
+    SPLIT_MATERIAL                     = 48;
+    DOWNLOAD_MATERIAL_RESOURCE         = 49;
+
+    CHANGE_WORK_ORDER_STATUS           = 50;
+    LIST_WORK_ORDERS                   = 51;
+    GET_WORK_ORDER_INFORMATION         = 52;
+    GET_SITE_INFORMATION               = 53;
+    GET_TOOL_ID                        = 54;
+    FEED_COLLECT                       = 55;
+    LIST_STATIONS                      = 56;
+    SET_STATION_CONFIG                 = 57;
+    GET_STATION_CONFIG                 = 58;
+    LIST_STATION_SITES                 = 59;
+    PRINT_MATERIAL_RESOURCE            = 60;
+
+    LIST_DEPARTMENT_IDS                = 61;
+    STATION_FORCE_SIGN_IN              = 62;
+    STATION_SIGN_OUT                   = 63;
+    GET_STATION_OPERATOR               = 64;
+    UPDATE_WORK_ORDER                  = 65;
+
+    CREATE_WORK_ORDERS_FROM_FILE       = 66;
+    DOWNLOAD_PRE_MATERIAL_RESOURCE     = 67;
+
+    MES_FEED    = 69;
+    MES_COLLECT = 70;
+    
+    LIST_WORK_ORDERS_RATE              = 71;
+}

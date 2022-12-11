@@ -1,0 +1,8 @@
+.idea
+.vscode
+
+# some files not to be git
+assets/.ignore
+
+.golangci.yaml
+.pre-commit-config.yaml

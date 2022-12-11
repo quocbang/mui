@@ -1,0 +1,35 @@
+.text {
+  font-size: 14px;
+}
+.card-title{
+font-size: 16px;
+}
+
+.item {
+  margin-bottom: 18px;
+}
+
+.clearfix:before,
+.clearfix:after {
+  display: table;
+  content: "";
+}
+.clearfix:after {
+  clear: both
+}
+.label-title{
+font-weight:bold;
+}
+
+.header-style {
+font-size: 1.5rem;
+text-align: center;
+}
+
+div.el-card__header{
+  padding: 10px 20px
+}
+.item{
+  margin-top: -12px;
+  margin-bottom: 0px;
+}
